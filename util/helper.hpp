@@ -4,6 +4,10 @@
 #define ADDRESS "localhost"
 #define PORT 4000
 
+/* Socket side definition */
+#define SOCK_CLIENT 0
+#define SOCK_SERVER 1
+
 struct tDatagram
 {  
   int type;

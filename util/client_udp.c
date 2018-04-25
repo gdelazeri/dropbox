@@ -42,32 +42,21 @@ void sendFile(char* filename, char* host)
 	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
 	bzero(&(serv_addr.sin_zero), 8);  
 
-	fileptr = fopen(filename, "rb");
-	fseek(fileptr, 0, SEEK_END);          // Jump to the end of the file
-	filelen = ftell(fileptr);             // Get the current byte offset in the file
-	rewind(fileptr);                      // Jump back to the beginning of the file
-	fread(buffer, sizeof(char), 4, fileptr); // Read in the entire file
-
-	n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-	if (n < 0) 
-		printf("ERROR sendto");
+	// fileptr = fopen(filename, "rb");
+	// fseek(fileptr, 0, SEEK_END);          // Jump to the end of the file
+	// filelen = ftell(fileptr);             // Get the current byte offset in the file
+	// rewind(fileptr);                      // Jump back to the beginning of the file
+	// fread(buffer, sizeof(char), 4, fileptr); // Read in the entire file
 	
 	length = sizeof(struct sockaddr_in);
 	n = recvfrom(sockfd, buffer, 256, 0, (struct sockaddr *) &from, &length);
 	if (n < 0)
 		printf("ERROR recvfrom");
-	printf("Got an ack: %s\n", buffer);
+	printf("Got: %s\n", buffer);
 
-	fread(buffer, sizeof(char), 4, fileptr); // Read in the entire file
-	n = sendto(sockfd, buffer, strlen(buffer), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
+	n = sendto(sockfd, "oi", strlen("oi"), 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
 	if (n < 0) 
 		printf("ERROR sendto");
-
-	length = sizeof(struct sockaddr_in);
-	n = recvfrom(sockfd, buffer, 256, 0, (struct sockaddr *) &from, &length);
-	if (n < 0)
-		printf("ERROR recvfrom");
-	printf("Got an ack: %s\n", buffer);
 
 	fclose(fileptr); // Close the file
 	close(sockfd);
@@ -99,7 +88,7 @@ int login_server(char* host, int port)
     memcpy(buffer, &datagram, sizeof(datagram));
 
 	n = sendto(sockfd, buffer, 256, 0, (const struct sockaddr *) &serv_addr, sizeof(struct sockaddr_in));
-	if (n < 0) 
+	if (n < 0)
 		printf("ERROR sendto");
 	
 	int length = sizeof(struct sockaddr_in);
@@ -115,4 +104,3 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
-

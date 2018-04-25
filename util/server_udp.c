@@ -33,24 +33,25 @@ int main(int argc, char *argv[])
 
 	while (1) {
 		/* receive from socket */
+		bzero(buf, 4);    
+		n = sendto(sockfd, "teste", 17, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
+		if (n  < 0) 
+			printf("ERROR on sendto");
+
+		printf("enviado");
 		n = recvfrom(sockfd, buf, BUFFER_SIZE, 0, (struct sockaddr *) &cli_addr, &clilen);
 		if (n < 0) 
 			printf("ERROR on recvfrom");
-		memcpy(&datagram, buf, sizeof(datagram));
+		printf("datagram buffer: %s", buf);
+		printf("recebido");
+		// memcpy(&datagram, buf, sizeof(datagram));
 
-		char response[10];
-		if (datagram.type == 1)
-			strcpy(response, "login");
-		if (datagram.type == 2)
-			strcpy(response, "tipo 2");
+		// char response[10];
+		// if (datagram.type == 1)
+		// 	strcpy(response, "login");
+		// if (datagram.type == 2)
+		// 	strcpy(response, "tipo 2");
 		
-		printf("datagram buffer");
-		n = sendto(sockfd, response, 17, 0,(struct sockaddr *) &cli_addr, sizeof(struct sockaddr));
-		if (n  < 0) 
-			printf("ERROR on sendto");
-		
-
-		bzero(buf, 4);    
 	}
 	
 	close(sockfd);
