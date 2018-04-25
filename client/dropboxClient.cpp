@@ -4,18 +4,23 @@
 // #include "device.hpp"
 // #include "file.hpp"
 
-#include "helper.hpp"
-#include "socket.hpp"
-
 #include <iostream>
 #include <iterator>
 #include <thread>
 #include <chrono>
 #include <map>
 
+#include "helper.hpp"
+#include "socket.hpp"
+
 // #include <csignal>
 // #include <condition_variable>
 // #include <mutex>
+
+/* Utils */
+void say(std::string message) {
+	std::cout << CLIENT_NAME << message << "\n";
+}
 
 int main(int argc, char* argv[])
 {
@@ -26,13 +31,13 @@ int main(int argc, char* argv[])
 		exit(1);
 	}
 	std::string userName = argv[1];
-    std::cout << "User logged: " << userName << "\n";
+    say("User logged: " + userName);
 
 	Socket* mainSocket = new Socket(SOCK_CLIENT);
 	mainSocket->login_server(argv[2], atoi(argv[3]));
 	mainSocket->sendMessage(userName);
 	std::string ack = mainSocket->receiveMessage();
-	std::cout << ack;
+    say("ack: " + ack);
 
 	return 0;
 

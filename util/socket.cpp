@@ -2,7 +2,7 @@
 #include "helper.hpp"
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -12,8 +12,6 @@
 #include <netdb.h>
 #include <string>
 #include <iostream>
-
-#define BUFFER_SIZE 256
 
 struct sockaddr_in socketAddress;
 struct sockaddr_in from;
@@ -37,6 +35,11 @@ Socket::Socket(int side)
 
 int Socket::login_server(std::string host, int port)
 {
+	if (port == 0){
+		port = rand() % 2000;
+		std::cout << port;
+	}
+
 	this->port = port;
 	struct hostent *server;
 

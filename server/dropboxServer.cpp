@@ -4,17 +4,42 @@
 // #include "serveruser.hpp"
 // #include "device.hpp"
 
-#include "socket.hpp"
-#include "helper.hpp"
-
 #include <iostream>
 #include <iterator>
 #include <vector>
 #include <thread>
+#include <list>
+#include <algorithm>
+#include <string.h>
+
+#include "helper.hpp"
+#include "socket.hpp"
+
+std::list<int> portsInUse;
+
+/* Utils */
+void say(std::string message){
+	std::cout << SERVER_NAME << message << "\n";
+}
+
+int createNewPort(){
+	int newPort;
+	std::list<int>::iterator findIter;
+	
+	while(1) {
+		newPort = std::rand() % 2000 + SERVER_PORT;
+		findIter = std::find(portsInUse.begin(), portsInUse.end(), newPort);
+		if (*findIter == (int) portsInUse.size()) {
+			portsInUse.push_back(newPort);
+			return newPort;
+		}
+	}
+	
+	
+}
 
 int main(int argc, char* argv[])
 {
-
 	if(argc != 1)
 	{
 		std::cout << "Usage:\n\t ./dropboxServer\n";
@@ -30,18 +55,31 @@ int main(int argc, char* argv[])
 	// 		database = new Database("./database");
 	// }
     Socket* mainSocket = new Socket(SOCK_SERVER);
-	mainSocket->login_server(std::string(), 4000);
-	std::cout << "server@dropbox~: server online " << "\n\n";
+	mainSocket->login_server(std::string(), SERVER_PORT);
+	say("server online");
 
 	// std::cout << "[server]~: dropbox server is up at port " << atoi(argv[1]) <<", database: " << database->getPath() << "\n";
-	// while(1){
+	while(1){
 		std::string username = mainSocket->receiveMessage();
-		std::cout << username << "\n";
+		say("login username: " + username);
 		mainSocket->sendMessage("KK");
-		getchar();
 		
-		// Socket* recSocket = new Socket(SOCK_SERVER);
-		// recSocket->login_server(std::string(), 4000);
+		Socket* receiverSocket = new Socket(SOCK_SERVER);
+		Socket* senderSocket = new Socket(SOCK_SERVER);
+
+		int portReceiver = createNewPort();
+		receiverSocket->login_server(std::string(), portReceiver);
+		int portSender = createNewPort();
+		senderSocket->login_server(std::string(), portSender);
+
+		std::string ports = std::to_string(portReceiver)+std::to_string(portSender);
+
+		tDatagram datagram;
+		datagram.type = NEW_PORTS;
+		datagram.dataSize = sizeof(ports.c_str());
+		strcpy(datagram.data, (char *) ports.c_str());
+
+		// mainSocket->sendMessage();
 
         // std::cout << "firstMessage" << firstMessage;
 		// ServerComm* activeComm = server.newConnection();
@@ -77,7 +115,7 @@ int main(int argc, char* argv[])
 		// thisUser->newDevice(thisDevice);
 		// std::thread init(initThread, thisUser, thisDevice);
 		// init.detach();
-	// }
+	}
 
 	return 0;
 }

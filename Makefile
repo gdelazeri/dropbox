@@ -1,6 +1,6 @@
 CC=g++
 INCLUDE=-I./util
-FLAGS=-o -Wall -pthread -std=gnu++11
+FLAGS=-O2 -Wall -pthread -std=gnu++11
 CFLAGS=$(FLAGS) $(INCLUDE)
 
 UTIL=util/timestamp.o util/file.o util/foldermanager.o util/filediff.o\
