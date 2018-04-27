@@ -34,6 +34,7 @@
         "typeinfo": "cpp",
         "utility": "cpp",
         "string": "cpp",
-        "iterator": "cpp"
+        "iterator": "cpp",
+        "cmath": "cpp"
     }
 }

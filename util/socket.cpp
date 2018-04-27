@@ -1,5 +1,4 @@
 #include "socket.hpp"
-#include "helper.hpp"
 
 #include <stdio.h>
 #include <cstdlib>
@@ -86,16 +85,52 @@ bool Socket::sendMessage(std::string message)
 	return true;
 }
 
-std::string Socket::receiveMessage()
+bool Socket::sendDatagram(tDatagram datagram)
+{
+	int n;
+	char* buffer = (char*) calloc(1, BUFFER_SIZE);
+
+	memcpy(buffer, &datagram, sizeof(datagram));
+	if (this->side == SOCK_SERVER)
+		n = sendto(this->socketFd, buffer, strlen(buffer), 0, (const struct sockaddr *) &from, sizeof(struct sockaddr));
+	else
+		n = sendto(this->socketFd, buffer, strlen(buffer), 0, (const struct sockaddr *) &socketAddress, sizeof(struct sockaddr_in));
+
+	if (n < 0)
+	{
+		std::cout << "ERROR sendto";
+		return false;
+	}
+	return true;
+}
+
+char* Socket::receiveMessage()
 {
 	socklen_t length = sizeof(struct sockaddr_in);
 	char* buffer = (char*) calloc(1, BUFFER_SIZE);
-	
+
 	int n = recvfrom(this->socketFd, buffer, BUFFER_SIZE, 0, (struct sockaddr *) &from, &length);
 	if (n < 0)
 	{
 		std::cout << "ERROR recvfrom";
-		return std::string("");
+		return buffer;
 	}
-	return std::string(buffer);
+	return buffer;
+}
+
+tDatagram Socket::receiveDatagram()
+{
+	tDatagram datagram;
+	socklen_t length = sizeof(struct sockaddr_in);
+	char* buffer = (char*) calloc(1, BUFFER_SIZE);
+
+	int n = recvfrom(this->socketFd, buffer, BUFFER_SIZE, 0, (struct sockaddr *) &from, &length);
+	if (n < 0)
+	{
+		std::cout << "ERROR recvfrom";
+		datagram.type = ERROR;
+		return datagram;
+	}
+	memcpy(&datagram, buffer, sizeof(datagram));
+	return datagram;
 }

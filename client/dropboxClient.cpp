@@ -9,8 +9,10 @@
 #include <thread>
 #include <chrono>
 #include <map>
+#include <fstream>
+#include <string.h>
+#include <stdio.h>
 
-#include "helper.hpp"
 #include "socket.hpp"
 
 // #include <csignal>
@@ -22,8 +24,19 @@ void say(std::string message) {
 	std::cout << CLIENT_NAME << message << "\n";
 }
 
+/* Parse data ports */
+std::pair<int, int> getPorts(char* data) {
+	std::string port = std::string(data);
+	int p1 = std::stoi(port.substr(0,4));
+	int p2 = std::stoi(port.substr(4,8));
+
+	return std::make_pair(p1, p2);
+}
+
 int main(int argc, char* argv[])
 {
+	tDatagram datagram;
+
 	// signal(SIGINT, signalHandler);
 	if(argc != 4)
 	{
@@ -31,23 +44,42 @@ int main(int argc, char* argv[])
 		exit(1);
 	}
 	std::string userName = argv[1];
-    say("User logged: " + userName);
+    say("User: " + userName);
 
+	// Cria comunicação principal com o servidor
 	Socket* mainSocket = new Socket(SOCK_CLIENT);
 	mainSocket->login_server(argv[2], atoi(argv[3]));
 	mainSocket->sendMessage(userName);
-	std::string ack = mainSocket->receiveMessage();
-    say("ack: " + ack);
 
-	return 0;
+	// Recebe portas
+	datagram = mainSocket->receiveDatagram();
+	std::pair<int, int> ports = getPorts(datagram.data);
+
+	if (datagram.type != NEW_PORTS)
+		return 1;
 
 	Socket* senderSocket = new Socket(SOCK_CLIENT);
 	Socket* receiverSocket = new Socket(SOCK_CLIENT);
+	senderSocket->login_server(argv[2], ports.first);
+	receiverSocket->login_server(argv[2], ports.second);
+	say("Sockets created");
+	
+	char buf[50];
+	std::fstream fbin;
+	fbin.open("client/test.txt", std::ios::binary | std::ios::in);
+	std::streamsize length = fbin.gcount();
+	fbin.read(buf, 50);
+	std::cout << buf  << '\n';
+	
+    // std::ifstream file ("test.txt", std::ios::binary);
+	// file.seekg(0);
+    // file.read(buf, 0);
+	// std::cout << buf << '\n';
 
-	senderSocket->login_server(argv[2], atoi(argv[3]));
-	receiverSocket->login_server(argv[2], atoi(argv[3]));
+	// sendDatagram->sendDatagram();
 
-    return 0;
+
+	return 0;
     
 	// passiveComm->connectServer(std::string(argv[2]), atoi(argv[3]));
 	// passiveComm->sendMessage("PASSIVE");

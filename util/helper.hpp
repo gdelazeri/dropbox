@@ -10,17 +10,15 @@
 #define LOGIN_TYPE 1
 
 /* Datagram definition */
-#define LOGIN 0
-#define NEW_PORTS 1
+#define ERROR 'E'
+#define LOGIN 'L'
+#define NEW_PORTS 'P'
 #define FILE 2
 #define BUFFER_SIZE 1024
-#define MAX_DATA_SIZE 1016
+#define MAX_DATA_SIZE 1023
 
-struct tDatagram
+typedef struct tDatagram
 {  
-  int type;
-  int dataSize;
+  char type;
   char data[MAX_DATA_SIZE];
-};
-  
-typedef struct tDatagram tDatagram;
+} tDatagram;

@@ -12,7 +12,6 @@
 #include <algorithm>
 #include <string.h>
 
-#include "helper.hpp"
 #include "socket.hpp"
 
 std::list<int> portsInUse;
@@ -40,6 +39,8 @@ int createNewPort(){
 
 int main(int argc, char* argv[])
 {
+	tDatagram datagram;
+
 	if(argc != 1)
 	{
 		std::cout << "Usage:\n\t ./dropboxServer\n";
@@ -60,9 +61,9 @@ int main(int argc, char* argv[])
 
 	// std::cout << "[server]~: dropbox server is up at port " << atoi(argv[1]) <<", database: " << database->getPath() << "\n";
 	while(1){
-		std::string username = mainSocket->receiveMessage();
-		say("login username: " + username);
-		mainSocket->sendMessage("KK");
+		char* username = mainSocket->receiveMessage();
+		say("login username: " + std::string(username));
+		// mainSocket->sendMessage("KK");
 		
 		Socket* receiverSocket = new Socket(SOCK_SERVER);
 		Socket* senderSocket = new Socket(SOCK_SERVER);
@@ -71,17 +72,16 @@ int main(int argc, char* argv[])
 		receiverSocket->login_server(std::string(), portReceiver);
 		int portSender = createNewPort();
 		senderSocket->login_server(std::string(), portSender);
-
 		std::string ports = std::to_string(portReceiver)+std::to_string(portSender);
 
-		tDatagram datagram;
 		datagram.type = NEW_PORTS;
-		datagram.dataSize = sizeof(ports.c_str());
 		strcpy(datagram.data, (char *) ports.c_str());
+		mainSocket->sendDatagram(datagram);
 
-		// mainSocket->sendMessage();
+		datagram = receiverSocket->receiveDatagram();
+		std::cout << datagram.type << '\n';
+		std::cout << datagram.data << '\n';
 
-        // std::cout << "firstMessage" << firstMessage;
 		// ServerComm* activeComm = server.newConnection();
 		// activeComm->receiveMessage();
 		// ServerComm* passiveComm = server.newConnection();

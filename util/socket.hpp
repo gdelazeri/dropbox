@@ -4,6 +4,7 @@
 // #include "../util/communication.hpp"
 #include <string>
 #include <netinet/in.h>
+#include "helper.hpp"
 
 class Socket // : public Communication
 {
@@ -15,7 +16,9 @@ class Socket // : public Communication
 		Socket(int side);
 		int login_server(std::string host, int port);
 		bool sendMessage(std::string message);
-		std::string receiveMessage();
+		bool sendDatagram(tDatagram datagram);
+		char* receiveMessage();
+		tDatagram receiveDatagram();
 		// bool connectServer(std::string serverIp, int serverPort);
 };
 
