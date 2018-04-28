@@ -20,7 +20,7 @@ dropboxServer: server/dropboxServer.o util/socket.o
 # dropboxClient: $(UTIL) client/clientuser.o client/dropboxclient.o client/clientcomm.o
 # 	$(CC) $(CFLAGS) -o $@ $^
 
-dropboxClient: client/dropboxClient.o util/socket.o
+dropboxClient: client/dropboxClient.o util/socket.o client/user.o util/request.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 %.o: %.cpp

@@ -13,9 +13,13 @@
 #define ERROR 'E'
 #define LOGIN 'L'
 #define NEW_PORTS 'P'
+#define FILENAME_TYPE 'I'
 #define FILE_TYPE 'F'
-#define BUFFER_SIZE 1024
-#define MAX_DATA_SIZE 1023
+#define END_FILE_TYPE 'N'
+#define BUFFER_SIZE 6000
+#define MAX_DATA_SIZE 5999
+
+#define UPLOAD_REQUEST 1
 
 typedef struct tDatagram
 {  

@@ -4,6 +4,11 @@
 // #include "serveruser.hpp"
 // #include "device.hpp"
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #include <iostream>
 #include <iterator>
 #include <vector>
@@ -33,8 +38,6 @@ int createNewPort(){
 			return newPort;
 		}
 	}
-	
-	
 }
 
 int main(int argc, char* argv[])
@@ -47,43 +50,29 @@ int main(int argc, char* argv[])
 		exit(1);
 	}
 
-	// ServerComm server(atoi(argv[1]));
-	// if(!database)
-	// {
-	// 	if(argc == 3)
-	// 		database = new Database(std::string(argv[2]));
-	// 	else
-	// 		database = new Database("./database");
-	// }
     Socket* mainSocket = new Socket(SOCK_SERVER);
 	mainSocket->login_server(std::string(), SERVER_PORT);
 	say("server online");
 
-	// std::cout << "[server]~: dropbox server is up at port " << atoi(argv[1]) <<", database: " << database->getPath() << "\n";
 	while(1){
 		char* username = mainSocket->receiveMessage();
 		say("login username: " + std::string(username));
-		// mainSocket->sendMessage("KK");
 		
 		Socket* receiverSocket = new Socket(SOCK_SERVER);
 		Socket* senderSocket = new Socket(SOCK_SERVER);
 
 		int portReceiver = createNewPort();
-		receiverSocket->login_server(std::string(), portReceiver);
 		int portSender = createNewPort();
-		senderSocket->login_server(std::string(), portSender);
 		std::string ports = std::to_string(portReceiver)+std::to_string(portSender);
-		std::cout << "portReceiver: " << portReceiver << '\n';
-		std::cout << "portSender: " << portSender << '\n';
-
 		datagram.type = NEW_PORTS;
 		strcpy(datagram.data, (char *) ports.c_str());
 		mainSocket->sendDatagram(datagram);
-		datagram = receiverSocket->receiveDatagram();
 
-		// datagram = receiverSocket->receiveDatagram();
-		// std::cout << datagram.type << '\n';
-		// std::cout << datagram.data << '\n';
+		receiverSocket->login_server(std::string(), portReceiver);
+		senderSocket->login_server(std::string(), portSender);
+		say("waiting for a file");
+		receiverSocket->receive_file();
+		say("file received");
 
 		// ServerComm* activeComm = server.newConnection();
 		// activeComm->receiveMessage();

@@ -4,6 +4,12 @@
 // #include "device.hpp"
 // #include "file.hpp"
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+
 #include <iostream>
 #include <iterator>
 #include <thread>
@@ -11,12 +17,15 @@
 #include <map>
 #include <string.h>
 #include <stdio.h>
+#include <mutex>
 
-#include "socket.hpp"
+#include "user.hpp"
 
 // #include <csignal>
 // #include <condition_variable>
 // #include <mutex>
+
+User* user = new User();
 
 /* Utils */
 void say(std::string message) {
@@ -32,6 +41,61 @@ std::pair<int, int> getPorts(char* data) {
 	return std::make_pair(p1, p2);
 }
 
+void sendThread(Socket* socket)
+{
+	while(user->isConnected)
+	{
+		// std::cout << "sendThread\n";
+		user->executeRequest(socket);
+	}
+}
+
+void receiveThread(Socket* socket)
+{
+	while(user->isConnected)
+	{
+		// std::cout << "receiveThread\n";
+		// user->processResquest(socket);
+	}
+}
+
+void shellThread()
+{
+	std::mutex block;
+
+	while(user->isConnected)
+	{
+		say("shellThread");
+		std::string line;
+		std::string command;
+		std::string argument;
+		std::size_t pos;
+
+		std::getline(std::cin, line);
+
+		if((pos = line.find(" ")) != std::string::npos)
+		{
+			command = line.substr(0, pos);
+			line = line.substr(pos+1, std::string::npos);
+			if(line != "")
+				argument = line;
+			else
+				argument = "";
+			line = "";
+		}
+		else
+		{
+			command = line;
+			line = "";
+		}
+
+		if(command == "upload"){
+			std::cout << command << '\n';
+			user->addRequestToSend(Request(UPLOAD_REQUEST, argument));
+		}
+	}
+}
+
 int main(int argc, char* argv[])
 {
 	tDatagram datagram;
@@ -44,6 +108,7 @@ int main(int argc, char* argv[])
 	}
 	std::string userName = argv[1];
     say("User: " + userName);
+	user->isConnected = true;
 
 	// Cria comunicação principal com o servidor
 	Socket* mainSocket = new Socket(SOCK_CLIENT);
@@ -53,32 +118,23 @@ int main(int argc, char* argv[])
 	// Recebe portas
 	datagram = mainSocket->receiveDatagram();
 	std::pair<int, int> ports = getPorts(datagram.data);
-	
 	if (datagram.type != NEW_PORTS)
 		return 1;
 
 	Socket* senderSocket = new Socket(SOCK_CLIENT);
 	Socket* receiverSocket = new Socket(SOCK_CLIENT);
-	int p1 = ports.first;
-	int p2 = ports.second;
-	std::cout << "portSender: " << p1 << '\n';
-	std::cout << "portReceiver: " << p2 << '\n';
-	senderSocket->login_server(argv[2], p1);
-	receiverSocket->login_server(argv[2], p2);
+	senderSocket->login_server(argv[2], ports.first);
+	receiverSocket->login_server(argv[2], ports.second);
 	say("Sockets created");
 	
-	getchar();
+	std::thread shell(shellThread);
+	std::thread sender(sendThread, senderSocket);
+	std::thread receiver(receiveThread, receiverSocket);
+	say("Threads created");
 
-	std::string filename = "client/test.txt";
-	senderSocket->send_file(filename);
+	shell.join();
 	
-    // std::ifstream file ("test.txt", std::ios::binary);
-	// file.seekg(0);
-    // file.read(buf, 0);
-	// std::cout << buf << '\n';
-
-	// sendDatagram->sendDatagram();
-
+	// std::thread noti(notifyThread, thisDevice, thisFolder);
 
 	return 0;
     
