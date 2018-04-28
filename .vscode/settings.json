@@ -35,6 +35,7 @@
         "utility": "cpp",
         "string": "cpp",
         "iterator": "cpp",
-        "cmath": "cpp"
+        "cmath": "cpp",
+        "fstream": "cpp"
     }
 }

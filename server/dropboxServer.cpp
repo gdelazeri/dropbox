@@ -73,14 +73,17 @@ int main(int argc, char* argv[])
 		int portSender = createNewPort();
 		senderSocket->login_server(std::string(), portSender);
 		std::string ports = std::to_string(portReceiver)+std::to_string(portSender);
+		std::cout << "portReceiver: " << portReceiver << '\n';
+		std::cout << "portSender: " << portSender << '\n';
 
 		datagram.type = NEW_PORTS;
 		strcpy(datagram.data, (char *) ports.c_str());
 		mainSocket->sendDatagram(datagram);
-
 		datagram = receiverSocket->receiveDatagram();
-		std::cout << datagram.type << '\n';
-		std::cout << datagram.data << '\n';
+
+		// datagram = receiverSocket->receiveDatagram();
+		// std::cout << datagram.type << '\n';
+		// std::cout << datagram.data << '\n';
 
 		// ServerComm* activeComm = server.newConnection();
 		// activeComm->receiveMessage();

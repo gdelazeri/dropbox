@@ -11,9 +11,23 @@
 #include <netdb.h>
 #include <string>
 #include <iostream>
+#include <fstream>
 
 struct sockaddr_in socketAddress;
 struct sockaddr_in from;
+
+#include <time.h>
+
+void now(){
+    time_t     now = time(0);
+    struct tm  tstruct;
+    char       buf[80];
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
+
+    std::cout << buf << "\n";
+}
+    
 
 Socket::Socket(int side)
 {
@@ -36,7 +50,6 @@ int Socket::login_server(std::string host, int port)
 {
 	if (port == 0){
 		port = rand() % 2000;
-		std::cout << port;
 	}
 
 	this->port = port;
@@ -87,14 +100,20 @@ bool Socket::sendMessage(std::string message)
 
 bool Socket::sendDatagram(tDatagram datagram)
 {
+	std::cout << "sendDatagram\n";
+	std::cout << "port: " << this->port << '\n';
+	std::cout << "sin_port: " << socketAddress.sin_port << '\n';
+	
 	int n;
 	char* buffer = (char*) calloc(1, BUFFER_SIZE);
 
 	memcpy(buffer, &datagram, sizeof(datagram));
-	if (this->side == SOCK_SERVER)
-		n = sendto(this->socketFd, buffer, strlen(buffer), 0, (const struct sockaddr *) &from, sizeof(struct sockaddr));
-	else
-		n = sendto(this->socketFd, buffer, strlen(buffer), 0, (const struct sockaddr *) &socketAddress, sizeof(struct sockaddr_in));
+	if (this->side == SOCK_SERVER) {
+		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &from, sizeof(struct sockaddr));
+	}
+	else {
+		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &socketAddress, sizeof(struct sockaddr_in));
+	}
 
 	if (n < 0)
 	{
@@ -120,6 +139,10 @@ char* Socket::receiveMessage()
 
 tDatagram Socket::receiveDatagram()
 {
+	std::cout << "receiveDatagram\n";
+	std::cout << "port: " << this->port << '\n';
+	std::cout << "sin_port: " << socketAddress.sin_port << '\n';
+
 	tDatagram datagram;
 	socklen_t length = sizeof(struct sockaddr_in);
 	char* buffer = (char*) calloc(1, BUFFER_SIZE);
@@ -133,4 +156,42 @@ tDatagram Socket::receiveDatagram()
 	}
 	memcpy(&datagram, buffer, sizeof(datagram));
 	return datagram;
+}
+
+void Socket::send_file(std::string filename)
+{
+	tDatagram datagram;
+	datagram.type = FILE_TYPE;
+
+	char* fileBuffer = (char*) calloc(1, MAX_DATA_SIZE);
+
+	std::fstream file;
+	file.open(filename.c_str(), std::ios::binary | std::ios::in);
+	
+	file.seekg (0, file.end);
+	int fileSize = file.tellg();
+	
+	file.seekg (0, file.beg);
+
+	if (fileSize <= MAX_DATA_SIZE)
+	{
+		bzero(fileBuffer, MAX_DATA_SIZE);
+		file.read(fileBuffer, fileSize);
+		strcpy(datagram.data, (char *) fileBuffer);
+		this->sendDatagram(datagram);
+	}
+	else
+	{
+		int bytesSent = 0;
+		int bytesToRead = 0;
+		while(bytesSent < fileSize)
+		{
+			bytesToRead = (fileSize - bytesSent < MAX_DATA_SIZE) ?  (fileSize - bytesSent) : MAX_DATA_SIZE;
+			bzero(fileBuffer, MAX_DATA_SIZE);
+			file.read(fileBuffer, bytesToRead);
+			strcpy(datagram.data, (char *) fileBuffer);
+			this->sendDatagram(datagram);
+			bytesSent += bytesToRead;
+		}
+	}
 }

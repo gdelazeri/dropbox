@@ -9,7 +9,6 @@
 #include <thread>
 #include <chrono>
 #include <map>
-#include <fstream>
 #include <string.h>
 #include <stdio.h>
 
@@ -54,22 +53,24 @@ int main(int argc, char* argv[])
 	// Recebe portas
 	datagram = mainSocket->receiveDatagram();
 	std::pair<int, int> ports = getPorts(datagram.data);
-
+	
 	if (datagram.type != NEW_PORTS)
 		return 1;
 
 	Socket* senderSocket = new Socket(SOCK_CLIENT);
 	Socket* receiverSocket = new Socket(SOCK_CLIENT);
-	senderSocket->login_server(argv[2], ports.first);
-	receiverSocket->login_server(argv[2], ports.second);
+	int p1 = ports.first;
+	int p2 = ports.second;
+	std::cout << "portSender: " << p1 << '\n';
+	std::cout << "portReceiver: " << p2 << '\n';
+	senderSocket->login_server(argv[2], p1);
+	receiverSocket->login_server(argv[2], p2);
 	say("Sockets created");
 	
-	char buf[50];
-	std::fstream fbin;
-	fbin.open("client/test.txt", std::ios::binary | std::ios::in);
-	std::streamsize length = fbin.gcount();
-	fbin.read(buf, 50);
-	std::cout << buf  << '\n';
+	getchar();
+
+	std::string filename = "client/test.txt";
+	senderSocket->send_file(filename);
 	
     // std::ifstream file ("test.txt", std::ios::binary);
 	// file.seekg(0);

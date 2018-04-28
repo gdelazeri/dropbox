@@ -19,6 +19,7 @@ class Socket // : public Communication
 		bool sendDatagram(tDatagram datagram);
 		char* receiveMessage();
 		tDatagram receiveDatagram();
+		void send_file(std::string filename);
 		// bool connectServer(std::string serverIp, int serverPort);
 };
 
