@@ -13,7 +13,7 @@
 #define ERROR 'E'
 #define LOGIN 'L'
 #define NEW_PORTS 'P'
-#define FILENAME_TYPE 'I'
+#define BEGIN_FILE_TYPE 'I'
 #define FILE_TYPE 'F'
 #define END_FILE_TYPE 'N'
 #define BUFFER_SIZE 6000

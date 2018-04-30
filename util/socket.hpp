@@ -24,5 +24,5 @@ class Socket // : public Communication
 		tDatagram receiveDatagram();
 		tDatagram receiveDatagram2();
 		void send_file(std::string filename);
-		void receive_file();
+		void receive_file(std::string filename);
 };

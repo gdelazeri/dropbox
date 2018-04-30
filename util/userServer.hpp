@@ -12,4 +12,6 @@ class UserServer
 		void login();
 		void logout();
 		std::string getFolderName();
+		std::string getFolderPath();
+		bool createDir();
 };

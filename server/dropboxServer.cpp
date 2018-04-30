@@ -51,20 +51,23 @@ void sendThread(Socket* socket, UserServer* user)
 	{
 		datagram = socket->receiveDatagram();
 
-
 	}
 }
 
-void receiveThread(Socket* socket, UserServer* user)
+void receiveThread(Socket* socket, UserServer user)
 {
 	tDatagram datagram;
+	say("Receive thread");
 	
-	while(user->logged_in)
+	while(user.logged_in)
 	{
+		std::cout << "receiveThread\n";
 		datagram = socket->receiveDatagram();
 		switch (datagram.type)
 		{
-			case FILE_TYPE:
+			case BEGIN_FILE_TYPE:
+				std::cout << "BEGIN_FILE_TYPE\n";
+				socket->receive_file(user.getFolderPath() + "/" + std::string(datagram.data));
 				break;
 		}
 
@@ -77,13 +80,17 @@ UserServer searchUser(std::string userid)
 	for (std::list<UserServer>::iterator it = users.begin(); it != users.end(); ++it){
     	if (it->userid == userid)
 		{
-			std::cout << "find user\n";
+			it->logged_in = 1;
+			it->createDir();
 			return (*it);
 		}
 	}
 	UserServer newUserServer;
 	newUserServer.userid = userid;
+	newUserServer.logged_in = 1;
+	newUserServer.createDir();
 	users.push_back(newUserServer);
+
 	return newUserServer;
 }
 
@@ -133,12 +140,14 @@ int main(int argc, char* argv[])
 	say("server online");
 
 	while(1){
+		UserServer user;
 		datagram = mainSocket->receiveDatagram();
+
 		if (datagram.type != LOGIN)
 			return 1;
 		else
 		{
-			UserServer user = searchUser(std::string(datagram.data));
+			user = searchUser(std::string(datagram.data));
 			say("login username: " + user.userid);
 			saveUsersServer(users);
 		}
@@ -151,15 +160,19 @@ int main(int argc, char* argv[])
 		std::string ports = std::to_string(portReceiver)+std::to_string(portSender);
 		datagram.type = NEW_PORTS;
 		strcpy(datagram.data, (char *) ports.c_str());
+		say("Sending datagram");
 		mainSocket->sendDatagram(datagram);
 
+		say("Creating sockets");
 		receiverSocket->login_server(std::string(), portReceiver);
 		senderSocket->login_server(std::string(), portSender);
 		// say("waiting for a file");
-		receiverSocket->receive_file();
+		// receiverSocket->receive_file();
 		// say("file received");
 
-		// std::thread init(initThread, thisUser, thisDevice);
+		say("Creating threads");
+		std::thread rcv(receiveThread, receiverSocket, user);
+		rcv.detach();	
 		// std::thread init(initThread, thisUser, thisDevice);
 
 		// ServerComm* activeComm = server.newConnection();

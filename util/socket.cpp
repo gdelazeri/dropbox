@@ -208,7 +208,7 @@ void Socket::send_file(std::string filename)
 
 
 	// Send filename
-	datagram.type = FILENAME_TYPE;
+	datagram.type = BEGIN_FILE_TYPE;
 	strcpy(datagram.data, filename.c_str());
 	std::cout << "getchar()\n";
 	getchar();
@@ -232,23 +232,16 @@ void Socket::send_file(std::string filename)
 	file.close();
 }
 
-void Socket::receive_file()
+void Socket::receive_file(std::string filename)
 {
 	tDatagram datagram;
 	std::fstream file;
 	
-	datagram = this->receiveDatagram();
-	
-	if (datagram.type == FILENAME_TYPE)
-		file.open("server/tt.txt", std::ios::binary | std::ios::out);
-	else
-		return;
-
+	file.open(filename.c_str(), std::ios::binary | std::ios::out);
 	datagram = this->receiveDatagram();
 	while(datagram.type == FILE_TYPE && datagram.type != END_FILE_TYPE)
 	{
 		file.write(datagram.data, strlen(datagram.data));
-		std::cout << "data: " << strlen(datagram.data) << '\n';
 		datagram = this->receiveDatagram();
 	}
 	file.close();
