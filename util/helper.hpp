@@ -22,7 +22,12 @@
 #define UPLOAD_REQUEST 1
 
 typedef struct tDatagram
-{  
+{
   char type;
   char data[MAX_DATA_SIZE];
 } tDatagram;
+
+
+// #include "userServer.hpp"
+// void saveUsersServer(std::list<UserServer> users);
+// std::list<UserServer> loadUsersServer();

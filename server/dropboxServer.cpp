@@ -9,6 +9,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include <fstream>
 #include <iostream>
 #include <iterator>
 #include <vector>
@@ -18,8 +19,10 @@
 #include <string.h>
 
 #include "socket.hpp"
+#include "userServer.hpp"
 
 std::list<int> portsInUse;
+std::list<UserServer> users;
 
 /* Utils */
 void say(std::string message){
@@ -40,9 +43,84 @@ int createNewPort(){
 	}
 }
 
+void sendThread(Socket* socket, UserServer* user)
+{
+	tDatagram datagram;
+	
+	while(user->logged_in)
+	{
+		datagram = socket->receiveDatagram();
+
+
+	}
+}
+
+void receiveThread(Socket* socket, UserServer* user)
+{
+	tDatagram datagram;
+	
+	while(user->logged_in)
+	{
+		datagram = socket->receiveDatagram();
+		switch (datagram.type)
+		{
+			case FILE_TYPE:
+				break;
+		}
+
+		
+	}
+}
+
+UserServer searchUser(std::string userid)
+{
+	for (std::list<UserServer>::iterator it = users.begin(); it != users.end(); ++it){
+    	if (it->userid == userid)
+		{
+			std::cout << "find user\n";
+			return (*it);
+		}
+	}
+	UserServer newUserServer;
+	newUserServer.userid = userid;
+	users.push_back(newUserServer);
+	return newUserServer;
+}
+
+void saveUsersServer(std::list<UserServer> users)
+{
+    std::fstream file;
+    file.open("db.txt", std::ios::out);
+    for (std::list<UserServer>::iterator it = users.begin(); it != users.end(); ++it)
+    {
+        file << it->userid << "\n";
+	}
+    file.close();
+}
+
+std::list<UserServer> loadUsersServer()
+{
+    std::list<UserServer> users;
+    std::fstream file;
+    std::string line; 
+
+    file.open("db.txt", std::ios::in);
+    while (std::getline(file, line))
+    {
+        UserServer user;
+        user.userid = line;
+        users.push_back(user);
+    }
+    file.close();
+
+    return users;
+}
+
+
 int main(int argc, char* argv[])
 {
 	tDatagram datagram;
+	users = loadUsersServer();
 
 	if(argc != 1)
 	{
@@ -59,7 +137,11 @@ int main(int argc, char* argv[])
 		if (datagram.type != LOGIN)
 			return 1;
 		else
-			say("login username: " + std::string(datagram.data));
+		{
+			UserServer user = searchUser(std::string(datagram.data));
+			say("login username: " + user.userid);
+			saveUsersServer(users);
+		}
 		
 		Socket* receiverSocket = new Socket(SOCK_SERVER);
 		Socket* senderSocket = new Socket(SOCK_SERVER);
@@ -73,9 +155,12 @@ int main(int argc, char* argv[])
 
 		receiverSocket->login_server(std::string(), portReceiver);
 		senderSocket->login_server(std::string(), portSender);
-		say("waiting for a file");
+		// say("waiting for a file");
 		receiverSocket->receive_file();
-		say("file received");
+		// say("file received");
+
+		// std::thread init(initThread, thisUser, thisDevice);
+		// std::thread init(initThread, thisUser, thisDevice);
 
 		// ServerComm* activeComm = server.newConnection();
 		// activeComm->receiveMessage();

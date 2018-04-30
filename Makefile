@@ -14,7 +14,7 @@ all: dropboxServer dropboxClient
 # dropboxServer: $(UTIL) server/database.o server/serveruser.o server/servercomm.o server/dropboxserver.o
 # 	$(CC) $(CFLAGS) -o $@ $^
 
-dropboxServer: server/dropboxServer.o util/socket.o
+dropboxServer: server/dropboxServer.o util/socket.o util/userServer.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 # dropboxClient: $(UTIL) client/clientuser.o client/dropboxclient.o client/clientcomm.o
