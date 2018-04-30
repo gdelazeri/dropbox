@@ -108,19 +108,24 @@ int main(int argc, char* argv[])
 	}
 	std::string userName = argv[1];
     say("User: " + userName);
-	user->isConnected = true;
+	user->login();
 
-	// Cria comunicação principal com o servidor
+	// Create main communication
 	Socket* mainSocket = new Socket(SOCK_CLIENT);
 	mainSocket->login_server(argv[2], atoi(argv[3]));
-	mainSocket->sendMessage(userName);
 
-	// Recebe portas
+	// Send user
+	datagram.type = LOGIN;
+	strcpy(datagram.data, userName.c_str());
+	mainSocket->sendDatagram(datagram);
+
+	// Receive ports
 	datagram = mainSocket->receiveDatagram();
 	std::pair<int, int> ports = getPorts(datagram.data);
 	if (datagram.type != NEW_PORTS)
 		return 1;
 
+	// Create sender and receiver communication
 	Socket* senderSocket = new Socket(SOCK_CLIENT);
 	Socket* receiverSocket = new Socket(SOCK_CLIENT);
 	senderSocket->login_server(argv[2], ports.first);

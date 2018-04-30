@@ -15,4 +15,7 @@ class User
         void addRequestToReceive(Request newRequest);
         void executeRequest(Socket* socket);
         void processResquest(Socket* socket);
+        void login();
+        void logout();
+        
 };

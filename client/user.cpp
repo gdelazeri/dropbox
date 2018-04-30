@@ -33,3 +33,13 @@ void User::processResquest(Socket* socket)
     Request req = this->requestsToSend.front();
     this->requestsToReceive.pop();
 }
+
+void User::login()
+{
+    this->isConnected = true;
+}
+
+void User::logout()
+{
+    this->isConnected = false;
+}

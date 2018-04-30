@@ -179,9 +179,9 @@ tDatagram Socket::receiveDatagram()
 	tDatagram datagram;
 	socklen_t length = sizeof(struct sockaddr_in);
 	char* buffer = (char*) calloc(1, BUFFER_SIZE);
-	struct sockaddr_in fr;
+	// struct sockaddr_in fr;
 
-	int n = recvfrom(this->socketFd, buffer, BUFFER_SIZE, 0, (struct sockaddr *) &fr, &length);
+	int n = recvfrom(this->socketFd, buffer, BUFFER_SIZE, 0, (struct sockaddr *) &from, &length);
 	if (n < 0)
 	{
 		std::cout << "ERROR recvfrom";

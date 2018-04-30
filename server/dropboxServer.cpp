@@ -55,8 +55,11 @@ int main(int argc, char* argv[])
 	say("server online");
 
 	while(1){
-		char* username = mainSocket->receiveMessage();
-		say("login username: " + std::string(username));
+		datagram = mainSocket->receiveDatagram();
+		if (datagram.type != LOGIN)
+			return 1;
+		else
+			say("login username: " + std::string(datagram.data));
 		
 		Socket* receiverSocket = new Socket(SOCK_SERVER);
 		Socket* senderSocket = new Socket(SOCK_SERVER);
