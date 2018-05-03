@@ -101,6 +101,9 @@ void shellThread()
 				user->addRequestToReceive(Request(EXIT_REQUEST, argument));
 				user->logout();
 			}
+			if(command == "download"){
+				user->addRequestToReceive(Request(DOWNLOAD_REQUEST, argument));
+			}
 		}
 	} catch (int e)
 		{

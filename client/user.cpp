@@ -34,6 +34,9 @@ void User::processResquest(Socket* socket)
     {
         Request req = this->requestsToReceive.front();
     
+        if (req.type == DOWNLOAD_REQUEST){
+            socket->get_file(req.argument);
+        }
         if (req.type == EXIT_REQUEST){
             socket->close_session();
         }

@@ -224,6 +224,7 @@ void Socket::send_file(std::string filename)
 	char fileBuffer[MAX_DATA_SIZE];
 	file.open(filename.c_str(), std::ios::binary | std::ios::in);
 	
+	// Get file size
 	file.seekg(0, file.end);
 	int fileSize = file.tellg();
 	file.seekg(0, file.beg);
@@ -248,10 +249,31 @@ void Socket::send_file(std::string filename)
 	file.close();
 }
 
+void Socket::get_file(std::string filename)
+{
+	tDatagram datagram;
+
+	// Request file
+	datagram.type = GET_FILE_TYPE;
+	strcpy(datagram.data, filename.c_str());
+	this->sendDatagram(datagram);
+
+	datagram = this->receiveDatagram();
+	std::cout << "DOWNLOAD_REQUEST\n";
+	if (datagram.type == BEGIN_FILE_TYPE)
+	{
+		std::cout << "DOWNLOAD_REQUEST\n";
+		this->receive_file(std::string(datagram.data));
+	}
+	std::cout << "DOWNLOAD_REQUEST\n";
+}
+
+
 void Socket::receive_file(std::string filename)
 {
 	tDatagram datagram;
 	std::fstream file;
+	std::cout << filename << "\n";
 	
 	file.open(filename.c_str(), std::ios::binary | std::ios::out);
 	datagram = this->receiveDatagram();

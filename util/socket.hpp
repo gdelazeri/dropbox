@@ -14,14 +14,19 @@ class Socket // : public Communication
 		int port;
 		struct sockaddr_in socketAddress;
 		struct sockaddr_in from;
+
 		Socket(int side);
+
 		struct sockaddr_in createSocket(std::string host, int port);
 		int login_server(std::string host, int port);
+
 		bool sendMessage(std::string message);
-		bool sendDatagram(tDatagram datagram);
 		char* receiveMessage();
+		
+		bool sendDatagram(tDatagram datagram);
 		tDatagram receiveDatagram();
-		tDatagram receiveDatagram2();
+		
+		void get_file(std::string filename);
 		void send_file(std::string filename);
 		void receive_file(std::string filename);
 		bool close_session();

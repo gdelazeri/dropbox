@@ -46,13 +46,17 @@ int createNewPort(){
 void sendThread(Socket* socket, UserServer* user)
 {
 	tDatagram datagram;
-	say("Receive thread");
+	say("Send thread");
 	
 	while(user->logged_in)
 	{
 		datagram = socket->receiveDatagram();
 		switch (datagram.type)
 		{
+			case GET_FILE_TYPE:
+				socket->send_file(user->getFolderPath() + "/" + std::string(datagram.data));
+				break;
+
 			case CLOSE:
 				user->logged_in = 0;
 				break;
