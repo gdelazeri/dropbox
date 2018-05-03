@@ -11,15 +11,18 @@
 
 /* Datagram definition */
 #define ERROR 'E'
+#define CLOSE 'C'
 #define LOGIN 'L'
 #define NEW_PORTS 'P'
 #define BEGIN_FILE_TYPE 'I'
 #define FILE_TYPE 'F'
 #define END_FILE_TYPE 'N'
+#define ACK 'A'
 #define BUFFER_SIZE 6000
 #define MAX_DATA_SIZE 5999
 
 #define UPLOAD_REQUEST 1
+#define EXIT_REQUEST 2
 
 typedef struct tDatagram
 {

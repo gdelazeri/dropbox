@@ -117,6 +117,43 @@ bool Socket::sendMessage(std::string message)
 	return true;
 }
 
+bool Socket::sendAck()
+{
+	int n;
+	char* buffer = (char*) calloc(1, BUFFER_SIZE);
+	buffer[0] = ACK;
+
+	if (this->side == SOCK_SERVER)
+		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &from, sizeof(struct sockaddr));
+	else
+		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &this->socketAddress, sizeof(struct sockaddr_in));
+
+	if (n < 0)
+	{
+		std::cout << "ERROR sendto";
+		return false;
+	}
+	return true;
+}
+
+bool Socket::waitAck()
+{
+	socklen_t length = sizeof(struct sockaddr_in);
+	char* buffer = (char*) calloc(1, BUFFER_SIZE);
+
+	int n = recvfrom(this->socketFd, buffer, BUFFER_SIZE, 0, (struct sockaddr *) &from, &length);
+	if (n < 0)
+	{
+		std::cout << "ERROR recvfrom";
+		return false;
+	}
+	if (buffer[0] == ACK)
+		return true;
+	
+	return false;
+}
+
+
 bool Socket::sendDatagram(tDatagram datagram)
 {
 	int n;
@@ -129,34 +166,18 @@ bool Socket::sendDatagram(tDatagram datagram)
 	else {
 		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &this->socketAddress, sizeof(struct sockaddr_in));
 	}
-
 	if (n < 0)
 	{
 		std::cout << "ERROR sendto";
 		return false;
 	}
-	return true;
-}
 
-bool Socket::sendDatagram2(tDatagram datagram, struct sockaddr_in sock)
-{
-	struct sockaddr_in fr;
-	int n;
-	char* buffer = (char*) calloc(1, BUFFER_SIZE);
-
-	memcpy(buffer, &datagram, sizeof(datagram));
-	if (this->side == SOCK_SERVER) {
-		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &fr, sizeof(struct sockaddr));
-	}
-	else {
-		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &sock, sizeof(struct sockaddr_in));
-	}
-
-	if (n < 0)
+	if (!this->waitAck())
 	{
-		std::cout << "ERROR sendto";
+		std::cout << "ERROR ack miss";
 		return false;
 	}
+	
 	return true;
 }
 
@@ -179,7 +200,6 @@ tDatagram Socket::receiveDatagram()
 	tDatagram datagram;
 	socklen_t length = sizeof(struct sockaddr_in);
 	char* buffer = (char*) calloc(1, BUFFER_SIZE);
-	// struct sockaddr_in fr;
 
 	int n = recvfrom(this->socketFd, buffer, BUFFER_SIZE, 0, (struct sockaddr *) &from, &length);
 	if (n < 0)
@@ -189,6 +209,8 @@ tDatagram Socket::receiveDatagram()
 		return datagram;
 	}
 	memcpy(&datagram, buffer, sizeof(datagram));
+	this->sendAck();
+
 	return datagram;
 }
 
@@ -206,13 +228,11 @@ void Socket::send_file(std::string filename)
 	int fileSize = file.tellg();
 	file.seekg(0, file.beg);
 
-
 	// Send filename
 	datagram.type = BEGIN_FILE_TYPE;
 	strcpy(datagram.data, filename.c_str());
-	std::cout << "getchar()\n";
-	getchar();
 	this->sendDatagram(datagram);
+
 	datagram.type = FILE_TYPE;
 	while(bytesSent < fileSize)
 	{
@@ -220,13 +240,9 @@ void Socket::send_file(std::string filename)
 		bytesToRead = (fileSize - bytesSent < MAX_DATA_SIZE) ?  (fileSize - bytesSent) : MAX_DATA_SIZE;
 		file.read(fileBuffer, bytesToRead);
 		strcpy(datagram.data, (char *) fileBuffer);
-		std::cout << "getchar()\n";
-		getchar();
 		this->sendDatagram(datagram);
 		bytesSent += bytesToRead;
 	}
-	std::cout << "getchar()\n";
-	getchar();
 	datagram.type = END_FILE_TYPE;
 	this->sendDatagram(datagram);
 	file.close();
@@ -245,4 +261,17 @@ void Socket::receive_file(std::string filename)
 		datagram = this->receiveDatagram();
 	}
 	file.close();
+}
+
+bool Socket::close_session()
+{
+	tDatagram datagram;
+
+	datagram.type = CLOSE;
+	return this->sendDatagram(datagram);
+}
+
+void Socket::finish()
+{
+	close(this->socketFd);
 }

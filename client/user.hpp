@@ -7,7 +7,7 @@ class User
 {
 	public:
         std::string name;
-        bool isConnected;
+        int logged_in;
         std::queue<Request> requestsToSend;
         std::queue<Request> requestsToReceive;
 

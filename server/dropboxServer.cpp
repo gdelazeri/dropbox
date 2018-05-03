@@ -22,7 +22,7 @@
 #include "userServer.hpp"
 
 std::list<int> portsInUse;
-std::list<UserServer> users;
+std::list<UserServer*> users;
 
 /* Utils */
 void say(std::string message){
@@ -46,76 +46,90 @@ int createNewPort(){
 void sendThread(Socket* socket, UserServer* user)
 {
 	tDatagram datagram;
+	say("Receive thread");
 	
 	while(user->logged_in)
 	{
 		datagram = socket->receiveDatagram();
-
+		switch (datagram.type)
+		{
+			case CLOSE:
+				user->logged_in = 0;
+				break;
+		}
 	}
+
+	socket->finish();
+	portsInUse.remove(socket->port);
+	delete socket;
 }
 
-void receiveThread(Socket* socket, UserServer user)
+void receiveThread(Socket* socket, UserServer* user)
 {
 	tDatagram datagram;
 	say("Receive thread");
 	
-	while(user.logged_in)
+	while(user->logged_in)
 	{
-		std::cout << "receiveThread\n";
 		datagram = socket->receiveDatagram();
 		switch (datagram.type)
 		{
 			case BEGIN_FILE_TYPE:
-				std::cout << "BEGIN_FILE_TYPE\n";
-				socket->receive_file(user.getFolderPath() + "/" + std::string(datagram.data));
+				socket->receive_file(user->getFolderPath() + "/" + std::string(datagram.data));
+				break;
+			
+			case CLOSE:
+				user->logged_in = 0;
 				break;
 		}
-
-		
 	}
+
+	socket->finish();
+	portsInUse.remove(socket->port);
+	delete socket;
 }
 
-UserServer searchUser(std::string userid)
+UserServer* searchUser(std::string userid)
 {
-	for (std::list<UserServer>::iterator it = users.begin(); it != users.end(); ++it){
-    	if (it->userid == userid)
+	for (std::list<UserServer*>::iterator it = users.begin(); it != users.end(); ++it){
+    	if ((*it)->userid == userid)
 		{
-			it->logged_in = 1;
-			it->createDir();
+			(*it)->logged_in = 1;
+			(*it)->createDir();
 			return (*it);
 		}
 	}
-	UserServer newUserServer;
-	newUserServer.userid = userid;
-	newUserServer.logged_in = 1;
-	newUserServer.createDir();
+	UserServer* newUserServer = new UserServer();
+	newUserServer->userid = userid;
+	newUserServer->logged_in = 1;
+	newUserServer->createDir();
 	users.push_back(newUserServer);
 
 	return newUserServer;
 }
 
-void saveUsersServer(std::list<UserServer> users)
+void saveUsersServer(std::list<UserServer*> users)
 {
     std::fstream file;
     file.open("db.txt", std::ios::out);
-    for (std::list<UserServer>::iterator it = users.begin(); it != users.end(); ++it)
+    for (std::list<UserServer*>::iterator it = users.begin(); it != users.end(); ++it)
     {
-        file << it->userid << "\n";
+        file << (*it)->userid << "\n";
 	}
     file.close();
 }
 
-std::list<UserServer> loadUsersServer()
+std::list<UserServer*> loadUsersServer()
 {
-    std::list<UserServer> users;
+    std::list<UserServer*> users;
     std::fstream file;
     std::string line; 
 
     file.open("db.txt", std::ios::in);
     while (std::getline(file, line))
     {
-        UserServer user;
-        user.userid = line;
+        UserServer* user = new UserServer();
+        user->userid = line;
         users.push_back(user);
     }
     file.close();
@@ -140,7 +154,7 @@ int main(int argc, char* argv[])
 	say("server online");
 
 	while(1){
-		UserServer user;
+		UserServer* user = new UserServer();
 		datagram = mainSocket->receiveDatagram();
 
 		if (datagram.type != LOGIN)
@@ -148,7 +162,7 @@ int main(int argc, char* argv[])
 		else
 		{
 			user = searchUser(std::string(datagram.data));
-			say("login username: " + user.userid);
+			say("login username: " + user->userid);
 			saveUsersServer(users);
 		}
 		
@@ -166,15 +180,13 @@ int main(int argc, char* argv[])
 		say("Creating sockets");
 		receiverSocket->login_server(std::string(), portReceiver);
 		senderSocket->login_server(std::string(), portSender);
-		// say("waiting for a file");
-		// receiverSocket->receive_file();
-		// say("file received");
 
 		say("Creating threads");
 		std::thread rcv(receiveThread, receiverSocket, user);
+		std::thread snd(sendThread, senderSocket, user);
 		rcv.detach();	
+		snd.detach();	
 		// std::thread init(initThread, thisUser, thisDevice);
-
 		// ServerComm* activeComm = server.newConnection();
 		// activeComm->receiveMessage();
 		// ServerComm* passiveComm = server.newConnection();

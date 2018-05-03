@@ -4,7 +4,6 @@
 void User::addRequestToSend(Request newRequest)
 {
     this->requestsToSend.push(newRequest);
-    std::cout << "addRequestToSend\n";
 }
 
 void User::addRequestToReceive(Request newRequest)
@@ -16,30 +15,39 @@ void User::executeRequest(Socket* socket)
 {
     if (!this->requestsToSend.empty())
     {
-        std::cout << "executeRequest\n";
         Request req = this->requestsToSend.front();
-        std::cout << req.type << "\n";
-        std::cout << req.argument << "\n";
     
-        if (req.type == 1){
+        if (req.type == UPLOAD_REQUEST){
             socket->send_file(req.argument);
         }
+        if (req.type == EXIT_REQUEST){
+            socket->close_session();
+        }
+        
         this->requestsToSend.pop();
     }
 }
 
 void User::processResquest(Socket* socket)
 {
-    Request req = this->requestsToSend.front();
-    this->requestsToReceive.pop();
+    if (!this->requestsToReceive.empty())
+    {
+        Request req = this->requestsToReceive.front();
+    
+        if (req.type == EXIT_REQUEST){
+            socket->close_session();
+        }
+
+        this->requestsToReceive.pop();
+    }
 }
 
 void User::login()
 {
-    this->isConnected = true;
+    this->logged_in = 1;
 }
 
 void User::logout()
 {
-    this->isConnected = false;
+    this->logged_in = 0;
 }
