@@ -33,6 +33,9 @@ typedef struct tDatagram
 } tDatagram;
 
 
-// #include "userServer.hpp"
-// void saveUsersServer(std::list<UserServer> users);
-// std::list<UserServer> loadUsersServer();
+#include "userServer.hpp"
+#include <list>
+#include <fstream>
+#include <iostream>
+void saveUsersServer(std::list<UserServer*> users);
+std::list<UserServer*> loadUsersServer();

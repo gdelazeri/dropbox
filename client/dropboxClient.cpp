@@ -29,7 +29,10 @@ User* user = new User();
 
 /* Utils */
 void say(std::string message) {
-	std::cout << CLIENT_NAME << message << "\n";
+	if (user->userid.empty())
+		std::cout << CLIENT_NAME  << message << "\n";
+	else
+		std::cout << "[" << user->userid << "@dropbox] "  << message << "\n";
 }
 
 /* Parse data ports */
@@ -65,16 +68,17 @@ void receiveThread(Socket* socket)
 void shellThread()
 {
 	std::mutex block;
+	say("Type your command:");
 
 	try{
 		while(user->logged_in)
 		{
-			say("shellThread");
 			std::string line;
 			std::string command;
 			std::string argument;
 			std::size_t pos;
 
+			std::cout << ">> ";
 			std::getline(std::cin, line);
 
 			if((pos = line.find(" ")) != std::string::npos)
@@ -121,9 +125,8 @@ int main(int argc, char* argv[])
 		std::cout << "Usage:\n\t ./dropboxClient <user> <address> <port>\n";
 		exit(1);
 	}
-	std::string userName = argv[1];
-    say("User: " + userName);
-	user->login();
+	user->login(argv[1]);
+    say("User: " + user->userid);
 
 	// Create main communication
 	Socket* mainSocket = new Socket(SOCK_CLIENT);
@@ -131,7 +134,7 @@ int main(int argc, char* argv[])
 
 	// Send user
 	datagram.type = LOGIN;
-	strcpy(datagram.data, userName.c_str());
+	strcpy(datagram.data, user->userid.c_str());
 	mainSocket->sendDatagram(datagram);
 
 	// Receive ports

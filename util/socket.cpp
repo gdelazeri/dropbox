@@ -1,4 +1,5 @@
 #include "socket.hpp"
+#include "file.hpp"
 
 #include <stdio.h>
 #include <cstdlib>
@@ -12,6 +13,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <cstddef>
 
 // struct sockaddr_in this->socketAddress;
 struct sockaddr_in from;
@@ -214,41 +216,48 @@ tDatagram Socket::receiveDatagram()
 	return datagram;
 }
 
-void Socket::send_file(std::string filename)
+bool Socket::send_file(std::string pathname)
 {
+	File* fileHelper = new File(pathname);
+
+	if (!fileHelper->exists())
+		return false;
+
 	tDatagram datagram;
 	std::fstream file;
-	int bytesSent = 0;
-	int bytesToRead = 0;
-	
-	char fileBuffer[MAX_DATA_SIZE];
-	file.open(filename.c_str(), std::ios::binary | std::ios::in);
-	
-	// Get file size
-	file.seekg(0, file.end);
-	int fileSize = file.tellg();
-	file.seekg(0, file.beg);
+	int bytesSent = 0, bytesToRead = 0, fileSize = fileHelper->getSize();
+	char buffer[MAX_DATA_SIZE];
 
+	file.open(pathname.c_str(), std::ios::binary | std::ios::in);
+	
 	// Send filename
 	datagram.type = BEGIN_FILE_TYPE;
-	strcpy(datagram.data, filename.c_str());
+	strcpy(datagram.data, fileHelper->getFilename());
 	this->sendDatagram(datagram);
 
+	// Send file
 	datagram.type = FILE_TYPE;
 	while(bytesSent < fileSize)
 	{
-		bzero(fileBuffer, MAX_DATA_SIZE);
+		bzero(buffer, MAX_DATA_SIZE);
 		bytesToRead = (fileSize - bytesSent < MAX_DATA_SIZE) ?  (fileSize - bytesSent) : MAX_DATA_SIZE;
-		file.read(fileBuffer, bytesToRead);
-		strcpy(datagram.data, (char *) fileBuffer);
+		file.read(buffer, bytesToRead);
+		strcpy(datagram.data, (char *) buffer);
 		this->sendDatagram(datagram);
 		bytesSent += bytesToRead;
 	}
+
+	// Send end of file
 	datagram.type = END_FILE_TYPE;
 	this->sendDatagram(datagram);
+
 	file.close();
+	delete fileHelper;
+
+	return true;
 }
 
+// Used just by Client Side Socket
 void Socket::get_file(std::string filename)
 {
 	tDatagram datagram;
@@ -259,13 +268,10 @@ void Socket::get_file(std::string filename)
 	this->sendDatagram(datagram);
 
 	datagram = this->receiveDatagram();
-	std::cout << "DOWNLOAD_REQUEST\n";
 	if (datagram.type == BEGIN_FILE_TYPE)
 	{
-		std::cout << "DOWNLOAD_REQUEST\n";
 		this->receive_file(std::string(datagram.data));
 	}
-	std::cout << "DOWNLOAD_REQUEST\n";
 }
 
 
@@ -273,7 +279,6 @@ void Socket::receive_file(std::string filename)
 {
 	tDatagram datagram;
 	std::fstream file;
-	std::cout << filename << "\n";
 	
 	file.open(filename.c_str(), std::ios::binary | std::ios::out);
 	datagram = this->receiveDatagram();

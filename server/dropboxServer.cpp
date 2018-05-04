@@ -19,7 +19,6 @@
 #include <string.h>
 
 #include "socket.hpp"
-#include "userServer.hpp"
 
 std::list<int> portsInUse;
 std::list<UserServer*> users;
@@ -54,7 +53,8 @@ void sendThread(Socket* socket, UserServer* user)
 		switch (datagram.type)
 		{
 			case GET_FILE_TYPE:
-				socket->send_file(user->getFolderPath() + "/" + std::string(datagram.data));
+				say("Send_file");
+				socket->send_file("server/" + user->getFolderName() + "/" + std::string(datagram.data));
 				break;
 
 			case CLOSE:
@@ -79,7 +79,7 @@ void receiveThread(Socket* socket, UserServer* user)
 		switch (datagram.type)
 		{
 			case BEGIN_FILE_TYPE:
-				socket->receive_file(user->getFolderPath() + "/" + std::string(datagram.data));
+				socket->receive_file("server/" + user->getFolderName() + "/" + std::string(datagram.data));
 				break;
 			
 			case CLOSE:
@@ -99,47 +99,47 @@ UserServer* searchUser(std::string userid)
     	if ((*it)->userid == userid)
 		{
 			(*it)->logged_in = 1;
-			(*it)->createDir();
+			(*it)->createDir("server");
 			return (*it);
 		}
 	}
 	UserServer* newUserServer = new UserServer();
 	newUserServer->userid = userid;
 	newUserServer->logged_in = 1;
-	newUserServer->createDir();
+	newUserServer->createDir("server");
 	users.push_back(newUserServer);
 
 	return newUserServer;
 }
 
-void saveUsersServer(std::list<UserServer*> users)
-{
-    std::fstream file;
-    file.open("db.txt", std::ios::out);
-    for (std::list<UserServer*>::iterator it = users.begin(); it != users.end(); ++it)
-    {
-        file << (*it)->userid << "\n";
-	}
-    file.close();
-}
+// void saveUsersServer(std::list<UserServer*> users)
+// {
+//     std::fstream file;
+//     file.open("db.txt", std::ios::out);
+//     for (std::list<UserServer*>::iterator it = users.begin(); it != users.end(); ++it)
+//     {
+//         file << (*it)->userid << "\n";
+// 	}
+//     file.close();
+// }
 
-std::list<UserServer*> loadUsersServer()
-{
-    std::list<UserServer*> users;
-    std::fstream file;
-    std::string line; 
+// std::list<UserServer*> loadUsersServer()
+// {
+//     std::list<UserServer*> users;
+//     std::fstream file;
+//     std::string line; 
 
-    file.open("db.txt", std::ios::in);
-    while (std::getline(file, line))
-    {
-        UserServer* user = new UserServer();
-        user->userid = line;
-        users.push_back(user);
-    }
-    file.close();
+//     file.open("db.txt", std::ios::in);
+//     while (std::getline(file, line))
+//     {
+//         UserServer* user = new UserServer();
+//         user->userid = line;
+//         users.push_back(user);
+//     }
+//     file.close();
 
-    return users;
-}
+//     return users;
+// }
 
 
 int main(int argc, char* argv[])

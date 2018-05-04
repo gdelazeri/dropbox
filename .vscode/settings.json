@@ -36,6 +36,7 @@
         "string": "cpp",
         "iterator": "cpp",
         "cmath": "cpp",
-        "fstream": "cpp"
+        "fstream": "cpp",
+        "cstddef": "cpp"
     }
 }

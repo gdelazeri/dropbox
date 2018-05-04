@@ -6,7 +6,7 @@
 class User
 {
 	public:
-        std::string name;
+        std::string userid;
         int logged_in;
         std::queue<Request> requestsToSend;
         std::queue<Request> requestsToReceive;
@@ -15,7 +15,8 @@ class User
         void addRequestToReceive(Request newRequest);
         void executeRequest(Socket* socket);
         void processResquest(Socket* socket);
-        void login();
+        void login(std::string userid);
         void logout();
+        bool createDir();
         
 };

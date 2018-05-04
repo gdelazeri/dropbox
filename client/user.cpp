@@ -1,5 +1,27 @@
 #include "user.hpp"
 #include <iostream>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+void User::login(std::string userid)
+{
+    this->userid = userid;
+    this->logged_in = 1;
+    this->createDir();
+}
+
+void User::logout()
+{
+    this->logged_in = 0;
+}
+
+bool User::createDir()
+{
+    std::string dir = "client/sync_dir_" + this->userid;
+    if((mkdir(dir.c_str(), 0777)) == 0)
+        return true;
+    return false;
+}
 
 void User::addRequestToSend(Request newRequest)
 {
@@ -43,14 +65,4 @@ void User::processResquest(Socket* socket)
 
         this->requestsToReceive.pop();
     }
-}
-
-void User::login()
-{
-    this->logged_in = 1;
-}
-
-void User::logout()
-{
-    this->logged_in = 0;
 }
