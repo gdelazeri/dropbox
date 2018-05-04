@@ -225,7 +225,7 @@ bool Socket::send_file(std::string pathname)
 
 	tDatagram datagram;
 	std::fstream file;
-	int bytesSent = 0, bytesToRead = 0, fileSize = fileHelper->getSize();
+	int bytesSent = 0, bytesToRead = 0, fileSize = fileHelper->size;
 	char buffer[MAX_DATA_SIZE];
 
 	file.open(pathname.c_str(), std::ios::binary | std::ios::in);

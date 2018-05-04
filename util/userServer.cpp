@@ -18,6 +18,11 @@ std::string UserServer::getFolderName()
     return "sync_dir_" + this->userid;
 }
 
+std::string UserServer::getFolderPath()
+{
+    return "server/sync_dir_" + this->userid;
+}
+
 bool UserServer::createDir(std::string side)
 {
     std::string dir = side + "/" + this->getFolderName();

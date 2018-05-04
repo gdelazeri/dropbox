@@ -1,3 +1,14 @@
+#ifndef __HELPER_HPP__
+#define __HELPER_HPP__
+
+#include "userServer.hpp"
+#include <list>
+#include <fstream>
+#include <iostream>
+void saveUsersServer(std::list<UserServer*> users);
+std::list<UserServer*> loadUsersServer();
+void printUsers(std::list<UserServer*> users);
+
 #define SERVER_PORT 4000
 #define SERVER_NAME "[server@dropbox] "
 #define CLIENT_NAME "[client@dropbox] "
@@ -5,9 +16,6 @@
 /* Socket side definition */
 #define SOCK_CLIENT 0
 #define SOCK_SERVER 1
-
-/* Datagram Types */
-#define LOGIN_TYPE 1
 
 /* Datagram definition */
 #define ERROR 'E'
@@ -32,10 +40,4 @@ typedef struct tDatagram
   char data[MAX_DATA_SIZE];
 } tDatagram;
 
-
-#include "userServer.hpp"
-#include <list>
-#include <fstream>
-#include <iostream>
-void saveUsersServer(std::list<UserServer*> users);
-std::list<UserServer*> loadUsersServer();
+#endif

@@ -70,49 +70,44 @@ void shellThread()
 	std::mutex block;
 	say("Type your command:");
 
-	try{
-		while(user->logged_in)
+	while(user->logged_in)
+	{
+		std::string line;
+		std::string command;
+		std::string argument;
+		std::size_t pos;
+
+		std::cout << ">> ";
+		std::getline(std::cin, line);
+
+		if((pos = line.find(" ")) != std::string::npos)
 		{
-			std::string line;
-			std::string command;
-			std::string argument;
-			std::size_t pos;
-
-			std::cout << ">> ";
-			std::getline(std::cin, line);
-
-			if((pos = line.find(" ")) != std::string::npos)
-			{
-				command = line.substr(0, pos);
-				line = line.substr(pos+1, std::string::npos);
-				if(line != "")
-					argument = line;
-				else
-					argument = "";
-				line = "";
-			}
+			command = line.substr(0, pos);
+			line = line.substr(pos+1, std::string::npos);
+			if(line != "")
+				argument = line;
 			else
-			{
-				command = line;
-				line = "";
-			}
-
-			if(command == "upload"){
-				user->addRequestToSend(Request(UPLOAD_REQUEST, argument));
-			}
-			if(command == "exit"){
-				user->addRequestToSend(Request(EXIT_REQUEST, argument));
-				user->addRequestToReceive(Request(EXIT_REQUEST, argument));
-				user->logout();
-			}
-			if(command == "download"){
-				user->addRequestToReceive(Request(DOWNLOAD_REQUEST, argument));
-			}
+				argument = "";
+			line = "";
 		}
-	} catch (int e)
+		else
 		{
-			std::cout << "An exception occurred. Exception Nr. " << e << '\n';
+			command = line;
+			line = "";
 		}
+
+		if(command == "upload"){
+			user->addRequestToSend(Request(UPLOAD_REQUEST, argument));
+		}
+		if(command == "exit"){
+			user->addRequestToSend(Request(EXIT_REQUEST, argument));
+			user->addRequestToReceive(Request(EXIT_REQUEST, argument));
+			user->logout();
+		}
+		if(command == "download"){
+			user->addRequestToReceive(Request(DOWNLOAD_REQUEST, argument));
+		}
+	}
 }
 
 int main(int argc, char* argv[])
@@ -148,12 +143,11 @@ int main(int argc, char* argv[])
 	Socket* receiverSocket = new Socket(SOCK_CLIENT);
 	senderSocket->login_server(argv[2], ports.first);
 	receiverSocket->login_server(argv[2], ports.second);
-	say("Sockets created");
 	
+	// Create threads
 	std::thread receiver(receiveThread, receiverSocket);
 	std::thread sender(sendThread, senderSocket);
 	std::thread shell(shellThread);
-	say("Threads created");
 
 	receiver.detach();
 	sender.detach();

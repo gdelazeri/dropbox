@@ -1,4 +1,6 @@
-// #include "../util/communication.hpp"
+#ifndef __SOCKET_HPP__
+#define __SOCKET_HPP__
+
 #include <string>
 #include <netinet/in.h>
 #include <sys/types.h>
@@ -36,3 +38,4 @@ class Socket // : public Communication
 
 		void finish();
 };
+#endif

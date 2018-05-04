@@ -79,7 +79,7 @@ void receiveThread(Socket* socket, UserServer* user)
 		switch (datagram.type)
 		{
 			case BEGIN_FILE_TYPE:
-				socket->receive_file("server/" + user->getFolderName() + "/" + std::string(datagram.data));
+				socket->receive_file(user->getFolderPath() + "/" + std::string(datagram.data));
 				break;
 			
 			case CLOSE:
@@ -111,36 +111,6 @@ UserServer* searchUser(std::string userid)
 
 	return newUserServer;
 }
-
-// void saveUsersServer(std::list<UserServer*> users)
-// {
-//     std::fstream file;
-//     file.open("db.txt", std::ios::out);
-//     for (std::list<UserServer*>::iterator it = users.begin(); it != users.end(); ++it)
-//     {
-//         file << (*it)->userid << "\n";
-// 	}
-//     file.close();
-// }
-
-// std::list<UserServer*> loadUsersServer()
-// {
-//     std::list<UserServer*> users;
-//     std::fstream file;
-//     std::string line; 
-
-//     file.open("db.txt", std::ios::in);
-//     while (std::getline(file, line))
-//     {
-//         UserServer* user = new UserServer();
-//         user->userid = line;
-//         users.push_back(user);
-//     }
-//     file.close();
-
-//     return users;
-// }
-
 
 int main(int argc, char* argv[])
 {
@@ -178,14 +148,11 @@ int main(int argc, char* argv[])
 		std::string ports = std::to_string(portReceiver)+std::to_string(portSender);
 		datagram.type = NEW_PORTS;
 		strcpy(datagram.data, (char *) ports.c_str());
-		say("Sending datagram");
 		mainSocket->sendDatagram(datagram);
 
-		say("Creating sockets");
 		receiverSocket->login_server(std::string(), portReceiver);
 		senderSocket->login_server(std::string(), portSender);
 
-		say("Creating threads");
 		std::thread rcv(receiveThread, receiverSocket, user);
 		std::thread snd(sendThread, senderSocket, user);
 		rcv.detach();	

@@ -1,3 +1,13 @@
+#user
 dela
+#files
+server/sync_dir_dela/test.txt
+server/sync_dir_dela/test223.txt
+server/sync_dir_dela/testing.txt
+#end
+#user
 delazeri
+#end
+#user
 gui
+#end
