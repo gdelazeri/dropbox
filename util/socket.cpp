@@ -101,23 +101,6 @@ struct sockaddr_in Socket::createSocket(std::string host, int port)
 	return sockAddr;
 }
 
-bool Socket::sendMessage(std::string message)
-{
-	int n;
-
-	if (this->side == SOCK_SERVER)
-		n = sendto(this->socketFd, message.c_str(), strlen(message.c_str()), 0, (const struct sockaddr *) &from, sizeof(struct sockaddr));
-	else
-		n = sendto(this->socketFd, message.c_str(), strlen(message.c_str()), 0, (const struct sockaddr *) &this->socketAddress, sizeof(struct sockaddr_in));
-
-	if (n < 0)
-	{
-		std::cout << "ERROR sendto";
-		return false;
-	}
-	return true;
-}
-
 bool Socket::sendAck()
 {
 	int n;
@@ -180,20 +163,6 @@ bool Socket::sendDatagram(tDatagram datagram)
 	}
 	
 	return true;
-}
-
-char* Socket::receiveMessage()
-{
-	socklen_t length = sizeof(struct sockaddr_in);
-	char* buffer = (char*) calloc(1, BUFFER_SIZE);
-
-	int n = recvfrom(this->socketFd, buffer, BUFFER_SIZE, 0, (struct sockaddr *) &from, &length);
-	if (n < 0)
-	{
-		std::cout << "ERROR recvfrom";
-		return buffer;
-	}
-	return buffer;
 }
 
 tDatagram Socket::receiveDatagram()

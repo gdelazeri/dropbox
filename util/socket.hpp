@@ -7,7 +7,7 @@
 #include <sys/socket.h>
 #include "helper.hpp"
 
-class Socket // : public Communication
+class Socket
 {
 	protected:
 		int side;
@@ -22,9 +22,6 @@ class Socket // : public Communication
 		struct sockaddr_in createSocket(std::string host, int port);
 		int login_server(std::string host, int port);
 
-		bool sendMessage(std::string message);
-		char* receiveMessage();
-		
 		bool sendDatagram(tDatagram datagram);
 		tDatagram receiveDatagram();
 		

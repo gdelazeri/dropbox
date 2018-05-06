@@ -121,32 +121,31 @@ int main(int argc, char* argv[])
 		UserServer* user = new UserServer();
 		datagram = mainSocket->receiveDatagram();
 
-		if (datagram.type != LOGIN)
-			return 1;
-		else
+		if (datagram.type == LOGIN)
 		{
 			user = searchUser(std::string(datagram.data));
 			say("new login: " + user->userid);
 			saveUsersServer(users);
-		}
 		
-		Socket* receiverSocket = new Socket(SOCK_SERVER);
-		Socket* senderSocket = new Socket(SOCK_SERVER);
+			Socket* receiverSocket = new Socket(SOCK_SERVER);
+			Socket* senderSocket = new Socket(SOCK_SERVER);
 
-		int portReceiver = createNewPort(portsInUse);
-		int portSender = createNewPort(portsInUse);
-		std::string ports = std::to_string(portReceiver)+std::to_string(portSender);
-		datagram.type = NEW_PORTS;
-		strcpy(datagram.data, (char *) ports.c_str());
-		mainSocket->sendDatagram(datagram);
+			int portReceiver = createNewPort(portsInUse);
+			int portSender = createNewPort(portsInUse);
+			receiverSocket->login_server(std::string(), portReceiver);
+			senderSocket->login_server(std::string(), portSender);
 
-		receiverSocket->login_server(std::string(), portReceiver);
-		senderSocket->login_server(std::string(), portSender);
+			std::string ports = std::to_string(portReceiver)+std::to_string(portSender);
+			datagram.type = NEW_PORTS;
+			strcpy(datagram.data, (char *) ports.c_str());
+			mainSocket->sendDatagram(datagram);
 
-		std::thread rcv(receiveThread, receiverSocket, user);
-		std::thread snd(sendThread, senderSocket, user);
-		rcv.detach();	
-		snd.detach();	
+			std::thread rcv(receiveThread, receiverSocket, user);
+			std::thread snd(sendThread, senderSocket, user);
+			
+			rcv.detach();	
+			snd.detach();
+		}
 	}
 
 	return 0;

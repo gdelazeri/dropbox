@@ -130,9 +130,9 @@ int main(int argc, char* argv[])
 
 	// Receive ports
 	datagram = mainSocket->receiveDatagram();
-	std::pair<int, int> ports = getPorts(datagram.data);
 	if (datagram.type != NEW_PORTS)
 		return 1;
+	std::pair<int, int> ports = getPorts(datagram.data);
 
 	// Create sender and receiver communication
 	Socket* senderSocket = new Socket(SOCK_CLIENT);
