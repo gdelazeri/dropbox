@@ -5,9 +5,13 @@
 #include <list>
 #include <fstream>
 #include <iostream>
+#include <algorithm>
+
 void saveUsersServer(std::list<UserServer*> users);
 std::list<UserServer*> loadUsersServer();
 void printUsers(std::list<UserServer*> users);
+int createNewPort(std::list<int> portsInUse);
+std::pair<int, int> getPorts(char* data);
 
 #define SERVER_PORT 4000
 #define SERVER_NAME "[server@dropbox] "
@@ -25,14 +29,19 @@ void printUsers(std::list<UserServer*> users);
 #define GET_FILE_TYPE 'G'
 #define BEGIN_FILE_TYPE 'I'
 #define FILE_TYPE 'F'
-#define END_FILE_TYPE 'N'
+#define END_DATA 'N'
 #define ACK 'A'
+#define LIST_SERVER 'S'
+#define FILE_INFO 'O'
+
+/* Sizes */
 #define BUFFER_SIZE 6000
 #define MAX_DATA_SIZE 5999
 
 #define UPLOAD_REQUEST 1
 #define EXIT_REQUEST 2
 #define DOWNLOAD_REQUEST 3
+#define LIST_SERVER_REQUEST 4
 
 typedef struct tDatagram
 {

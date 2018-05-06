@@ -14,8 +14,11 @@ class File
 		std::string name;
 		std::string extension;
 		std::string last_modified;
+		std::string access_time;
+		std::string creation_time;
 		int size;
 
+		File(void);
 		File(std::string pathname);
 		const char* getFilename();
 		std::string getPath();
@@ -23,6 +26,6 @@ class File
 		std::string getExtension();
 		int getSize();
 		bool exists();
-		std::string getLastModified();
+		std::string getTime(char type);
 };
 #endif

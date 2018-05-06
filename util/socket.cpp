@@ -15,7 +15,6 @@
 #include <fstream>
 #include <cstddef>
 
-// struct sockaddr_in this->socketAddress;
 struct sockaddr_in from;
 
 Socket::Socket(int side)
@@ -248,7 +247,7 @@ bool Socket::send_file(std::string pathname)
 	}
 
 	// Send end of file
-	datagram.type = END_FILE_TYPE;
+	datagram.type = END_DATA;
 	this->sendDatagram(datagram);
 
 	file.close();
@@ -282,7 +281,7 @@ void Socket::receive_file(std::string filename)
 	
 	file.open(filename.c_str(), std::ios::binary | std::ios::out);
 	datagram = this->receiveDatagram();
-	while(datagram.type == FILE_TYPE && datagram.type != END_FILE_TYPE)
+	while(datagram.type == FILE_TYPE && datagram.type != END_DATA)
 	{
 		file.write(datagram.data, strlen(datagram.data));
 		datagram = this->receiveDatagram();
@@ -301,4 +300,68 @@ bool Socket::close_session()
 void Socket::finish()
 {
 	close(this->socketFd);
+}
+
+void Socket::list_server()
+{
+	tDatagram datagram;
+	std::cout << "filename\tsize\tmodified\t\taccess\t\t\tcreation\n";
+
+	datagram.type = LIST_SERVER;
+	this->sendDatagram(datagram);
+
+	datagram = this->receiveDatagram();
+	while(datagram.type == FILE_INFO && datagram.type != END_DATA)
+	{
+		int pos = 0, posEnd;
+		std::string fileInfo = std::string(datagram.data);
+		posEnd = fileInfo.find("#");
+		std::cout << fileInfo.substr(pos, posEnd-pos) << "\t ";
+
+		pos = posEnd+1;
+		posEnd = fileInfo.find("#", posEnd+1);
+		std::cout << fileInfo.substr(pos, posEnd-pos) << "\t";
+
+		pos = posEnd+1;
+		posEnd = fileInfo.find("#", posEnd+1);
+		std::cout << fileInfo.substr(pos, posEnd-pos) << "\t";
+
+		pos = posEnd+1;
+		posEnd = fileInfo.find("#", posEnd+1);
+		std::cout << fileInfo.substr(pos, posEnd-pos) << "\t";
+
+		pos = posEnd+1;
+		posEnd = fileInfo.find("#", posEnd+1);
+		std::cout << fileInfo.substr(pos, posEnd-pos) << "\t\n";
+
+		datagram = this->receiveDatagram();
+	}
+}
+
+void Socket::send_list_server(UserServer* user)
+{
+	for (std::list<File*>::iterator f = user->files.begin(); f != user->files.end(); ++f)
+	{
+		tDatagram datagram;
+		std::string fileInfo;
+		File* file = new File((*f)->pathname);
+		
+		fileInfo = file->getFilename();
+		fileInfo += "#";
+		fileInfo += std::to_string(file->size);
+		fileInfo += "#";
+		fileInfo += file->last_modified;
+		fileInfo += "#";
+		fileInfo += file->access_time;
+		fileInfo += "#";
+		fileInfo += file->creation_time;
+
+		datagram.type = FILE_INFO;
+		strcpy(datagram.data, fileInfo.c_str());
+		this->sendDatagram(datagram);
+	}
+
+	tDatagram datagram;
+	datagram.type = END_DATA;
+	this->sendDatagram(datagram);
 }

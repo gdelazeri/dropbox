@@ -32,6 +32,8 @@ class Socket // : public Communication
 		bool send_file(std::string filename);
 		void receive_file(std::string filename);
 		bool close_session();
+		void list_server();
+		void send_list_server(UserServer* user);
 
 		bool sendAck();
 		bool waitAck();

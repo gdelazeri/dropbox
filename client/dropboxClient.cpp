@@ -28,20 +28,12 @@
 User* user = new User();
 
 /* Utils */
-void say(std::string message) {
+void say(std::string message) 
+{
 	if (user->userid.empty())
 		std::cout << CLIENT_NAME  << message << "\n";
 	else
 		std::cout << "[" << user->userid << "@dropbox] "  << message << "\n";
-}
-
-/* Parse data ports */
-std::pair<int, int> getPorts(char* data) {
-	std::string port = std::string(data);
-	int p1 = std::stoi(port.substr(0,4));
-	int p2 = std::stoi(port.substr(4,8));
-
-	return std::make_pair(p1, p2);
 }
 
 void sendThread(Socket* socket)
@@ -52,6 +44,7 @@ void sendThread(Socket* socket)
 		user->executeRequest(socket);
 	}
 	socket->finish();
+	delete socket;
 }
 
 void receiveThread(Socket* socket)
@@ -61,8 +54,8 @@ void receiveThread(Socket* socket)
 		// std::cout << "receiveThread\n";
 		user->processResquest(socket);
 	}
-
 	socket->finish();
+	delete socket;
 }
 
 void shellThread()
@@ -99,13 +92,16 @@ void shellThread()
 		if(command == "upload"){
 			user->addRequestToSend(Request(UPLOAD_REQUEST, argument));
 		}
+		if(command == "download"){
+			user->addRequestToReceive(Request(DOWNLOAD_REQUEST, argument));
+		}
+		if(command == "list_server"){
+			user->addRequestToReceive(Request(LIST_SERVER_REQUEST, argument));
+		}
 		if(command == "exit"){
 			user->addRequestToSend(Request(EXIT_REQUEST, argument));
 			user->addRequestToReceive(Request(EXIT_REQUEST, argument));
 			user->logout();
-		}
-		if(command == "download"){
-			user->addRequestToReceive(Request(DOWNLOAD_REQUEST, argument));
 		}
 	}
 }

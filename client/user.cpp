@@ -62,6 +62,9 @@ void User::processResquest(Socket* socket)
         if (req.type == EXIT_REQUEST){
             socket->close_session();
         }
+        if (req.type == LIST_SERVER_REQUEST){
+            socket->list_server();
+        }
 
         this->requestsToReceive.pop();
     }

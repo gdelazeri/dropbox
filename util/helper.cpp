@@ -24,7 +24,7 @@ void saveUsersServer(std::list<UserServer*> users)
 
 std::list<UserServer*> loadUsersServer()
 {
-    std::list<UserServer*> users;
+    std::list<UserServer*> usersDB;
     std::fstream file;
     std::string line; 
 
@@ -48,12 +48,12 @@ std::list<UserServer*> loadUsersServer()
                     }
                 }
             }
-            users.push_back(user);
+            usersDB.push_back(user);
         }
     }
     file.close();
 
-    return users;
+    return usersDB;
 }
 
 void printUsers(std::list<UserServer*> users)
@@ -76,4 +76,27 @@ void printUsers(std::list<UserServer*> users)
         }
         std::cout << "\n";
 	}
+}
+
+int createNewPort(std::list<int> portsInUse){
+	int newPort;
+	std::list<int>::iterator findIter;
+	
+	while(1) {
+		newPort = std::rand() % 2000 + SERVER_PORT;
+		findIter = std::find(portsInUse.begin(), portsInUse.end(), newPort);
+		if (*findIter == (int) portsInUse.size()) {
+			portsInUse.push_back(newPort);
+			return newPort;
+		}
+	}
+}
+
+/* Parse data ports */
+std::pair<int, int> getPorts(char* data) {
+	std::string port = std::string(data);
+	int p1 = std::stoi(port.substr(0,4));
+	int p2 = std::stoi(port.substr(4,8));
+
+	return std::make_pair(p1, p2);
 }

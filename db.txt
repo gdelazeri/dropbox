@@ -7,6 +7,9 @@ server/sync_dir_dela/testing.txt
 #end
 #user
 delazeri
+#files
+server/sync_dir_delazeri/test.txt
+server/sync_dir_delazeri/teste1419.txt
 #end
 #user
 gui
