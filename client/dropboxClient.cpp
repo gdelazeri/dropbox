@@ -65,6 +65,8 @@ void shellThread()
 
 	while(user->logged_in)
 	{
+		while(user->lock) { }
+
 		std::string line;
 		std::string command;
 		std::string argument;
@@ -97,6 +99,8 @@ void shellThread()
 		}
 		if(command == "list_server"){
 			user->addRequestToReceive(Request(LIST_SERVER_REQUEST, argument));
+			user->lockShell();
+            // std::cout << "user->lockShell();\n";
 		}
 		if(command == "exit"){
 			user->addRequestToSend(Request(EXIT_REQUEST, argument));
