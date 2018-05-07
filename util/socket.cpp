@@ -208,7 +208,7 @@ bool Socket::send_file(std::string pathname)
 	while(bytesSent < fileSize)
 	{
 		bzero(buffer, MAX_DATA_SIZE);
-		bytesToRead = (fileSize - bytesSent < MAX_DATA_SIZE) ?  (fileSize - bytesSent) : MAX_DATA_SIZE;
+		bytesToRead = (fileSize - bytesSent < MAX_DATA_SIZE-1) ?  (fileSize - bytesSent) : MAX_DATA_SIZE-1;
 		file.read(buffer, bytesToRead);
 		strcpy(datagram.data, (char *) buffer);
 		this->sendDatagram(datagram);
