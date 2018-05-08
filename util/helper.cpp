@@ -15,6 +15,7 @@ void saveUsersServer(std::list<UserServer*> users)
             for (std::list<File*>::iterator f = (*it)->files.begin(); f != (*it)->files.end(); ++f)
             {
                 file << (*f)->pathname << "\n";
+                file << (*f)->last_modified << "\n";
             }
         }
         file << "#end\n";
@@ -33,21 +34,29 @@ std::list<UserServer*> loadUsersServer()
     {
         if (line == "#user") 
         {
+            // Get user id
             std::getline(file, line);
             UserServer* user = new UserServer();
             user->userid = line;
 
+            // Get pathnames
             std::getline(file, line);
             if (line == "#files")
             {
                 while (line != "#end") {
                     std::getline(file, line);
                     if (line != "#end"){
-                        File* file = new File(line);
-                        user->files.push_back(file);
+                        File* newFile = new File();
+                        newFile->pathname = line;
+                        
+                        std::getline(file, line);
+                        newFile->last_modified = line;
+                        user->files.push_back(newFile);
                     }
                 }
             }
+
+            // Add in list
             usersDB.push_back(user);
         }
     }

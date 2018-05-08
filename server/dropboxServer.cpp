@@ -67,10 +67,13 @@ void receiveThread(Socket* socket, UserServer* user)
 		datagram = socket->receiveDatagram();
 		switch (datagram.type)
 		{
-			case BEGIN_FILE_TYPE:
-				socket->receive_file(user->getFolderPath() + "/" + std::string(datagram.data));
+			case BEGIN_FILE_TYPE: {
+				std::string pathname = user->getFolderPath() + "/" + std::string(datagram.data);
+				std::string modificationTime = socket->receive_file(pathname);
+				user->addFile(pathname, modificationTime);
+				saveUsersServer(users);
 				break;
-			
+			}
 			case CLOSE:
 				user->logged_in = 0;
 				break;
