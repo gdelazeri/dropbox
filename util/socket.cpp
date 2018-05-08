@@ -219,6 +219,11 @@ bool Socket::send_file(std::string pathname)
 	datagram.type = END_DATA;
 	this->sendDatagram(datagram);
 
+	// Send last modification time
+	datagram.type = MODIFICATION_TIME;
+	strcpy(datagram.data, fileHelper->getTime('M').c_str());
+	this->sendDatagram(datagram);
+
 	file.close();
 	delete fileHelper;
 

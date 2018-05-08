@@ -1,16 +1,9 @@
 #user
-dela
-#files
-server/sync_dir_dela/test.txt
-server/sync_dir_dela/test223.txt
-server/sync_dir_dela/testing.txt
+gdelazeri
 #end
 #user
-delazeri
+gd
 #files
-server/sync_dir_delazeri/test.txt
-server/sync_dir_delazeri/teste1419.txt
-#end
-#user
-gui
+server/sync_dir_gd/testBig.txt
+2018/05/08 19:32:03
 #end
