@@ -30,3 +30,19 @@ bool UserServer::createDir(std::string side)
         return true;
     return false;
 }
+
+void UserServer::addFile(std::string pathname, std::string modificationTime)
+{
+    for (std::list<File*>::iterator it = this->files.begin(); it != this->files.end(); ++it){
+    	if ((*it)->pathname == pathname) {
+			(*it)->last_modified = modificationTime;
+            return;
+		}
+	}
+
+	File* newFile = new File();
+	newFile->pathname = pathname;
+	newFile->last_modified = modificationTime;
+	this->files.push_back(newFile);
+    return;
+}

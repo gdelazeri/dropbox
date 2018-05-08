@@ -18,5 +18,6 @@ class UserServer
 		std::string getFolderName();
 		std::string getFolderPath();
 		bool createDir(std::string side);
+		void addFile(std::string pathname, std::string modificationTime);
 };
 #endif
