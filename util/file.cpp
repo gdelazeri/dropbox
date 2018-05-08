@@ -20,7 +20,7 @@ const char* File::getFilename()
 {
 	std::size_t slashIndex = this->pathname.find_last_of("/\\");
 	slashIndex = slashIndex > this->pathname.length() ? 0 : slashIndex + 1;
-  	
+
     return this->pathname.substr(slashIndex, this->pathname.length()).c_str();
 }
 

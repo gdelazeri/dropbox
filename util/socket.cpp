@@ -326,17 +326,19 @@ void Socket::send_list_server(UserServer* user)
 	{
 		tDatagram datagram;
 		std::string fileInfo;
-		File* file = new File((*f)->pathname);
+		File* file = new File();
+		file->pathname = (*f)->pathname;
+		file->last_modified = (*f)->last_modified;
 		
-		fileInfo = file->getFilename();
+		fileInfo = std::string(file->getFilename());
 		fileInfo += "#";
-		fileInfo += std::to_string(file->size);
+		fileInfo += std::to_string(file->getSize());
 		fileInfo += "#";
-		fileInfo += file->last_modified;
+		fileInfo += std::string(file->last_modified);
 		fileInfo += "#";
-		fileInfo += file->access_time;
+		fileInfo += std::string(file->getTime('A'));
 		fileInfo += "#";
-		fileInfo += file->creation_time;
+		fileInfo += std::string(file->getTime('C'));
 
 		datagram.type = FILE_INFO;
 		strcpy(datagram.data, fileInfo.c_str());
