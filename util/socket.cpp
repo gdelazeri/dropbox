@@ -243,7 +243,7 @@ void Socket::get_file(std::string filename)
 }
 
 
-void Socket::receive_file(std::string filename)
+std::string Socket::receive_file(std::string filename)
 {
 	tDatagram datagram;
 	std::fstream file;
@@ -255,7 +255,15 @@ void Socket::receive_file(std::string filename)
 		file.write(datagram.data, strlen(datagram.data));
 		datagram = this->receiveDatagram();
 	}
+	
 	file.close();
+
+	// get the modification time from the file
+	datagram = this->receiveDatagram();
+	if (datagram.type == MODIFICATION_TIME) {
+		return std::string(datagram.data);
+	}
+	return "";
 }
 
 bool Socket::close_session()

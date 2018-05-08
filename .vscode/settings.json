@@ -37,6 +37,7 @@
         "iterator": "cpp",
         "cmath": "cpp",
         "fstream": "cpp",
-        "cstddef": "cpp"
+        "cstddef": "cpp",
+        "xlocale": "cpp"
     }
 }

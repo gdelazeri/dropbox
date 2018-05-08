@@ -27,7 +27,7 @@ class Socket
 		
 		void get_file(std::string filename);
 		bool send_file(std::string filename);
-		void receive_file(std::string filename);
+		std::string receive_file(std::string filename);
 		bool close_session();
 		void list_server();
 		void send_list_server(UserServer* user);
