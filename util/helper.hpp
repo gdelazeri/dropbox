@@ -33,6 +33,7 @@ std::pair<int, int> getPorts(char* data);
 #define ACK 'A'
 #define LIST_SERVER 'S'
 #define FILE_INFO 'O'
+#define MODIFICATION_TIME 'T'
 
 /* Sizes */
 #define BUFFER_SIZE 6000
