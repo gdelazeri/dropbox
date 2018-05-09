@@ -16,11 +16,11 @@ File::File(std::string pathname)
     this->size = this->getSize();
 }
 
-const char* File::getFilename()
+std::string File::getFilename()
 {
 	std::size_t slashIndex = this->pathname.find_last_of("/\\");
 	slashIndex = slashIndex > this->pathname.length() ? 0 : slashIndex + 1;
-
+    
     return this->pathname.substr(slashIndex, this->pathname.length()).c_str();
 }
 
@@ -31,7 +31,7 @@ std::string File::getName()
 	slashIndex = slashIndex > this->pathname.length() ? 0 : slashIndex + 1;
 	pointIndex = pointIndex > this->pathname.length() ? this->pathname.length() : pointIndex;
 
-    return this->pathname.substr(slashIndex, pointIndex-slashIndex).c_str();
+    return this->pathname.substr(slashIndex, pointIndex-slashIndex);
 }
 
 std::string File::getExtension()

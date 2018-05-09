@@ -1,11 +1,10 @@
 #user
-gdelazeri
-#end
-#user
-gd
+marcellitos
 #files
-server/sync_dir_gd/testBig.txt
-2018/05/08 19:32:03
-server/sync_dir_gd/test.txt
-2018/05/08 19:32:03
+server/sync_dir_marcellitos/test.txt
+2018/05/08 22:51:38
+server/sync_dir_marcellitos/testBig.txt
+2018/05/08 22:51:38
+server/sync_dir_marcellitos/teste1419.txt
+2018/05/08 22:51:38
 #end

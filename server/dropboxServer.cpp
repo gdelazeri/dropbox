@@ -69,6 +69,7 @@ void receiveThread(Socket* socket, UserServer* user)
 		{
 			case BEGIN_FILE_TYPE: {
 				std::string pathname = user->getFolderPath() + "/" + std::string(datagram.data);
+
 				std::string modificationTime = socket->receive_file(pathname);
 				user->addFile(pathname, modificationTime);
 				saveUsersServer(users);

@@ -200,7 +200,8 @@ bool Socket::send_file(std::string pathname)
 	
 	// Send filename
 	datagram.type = BEGIN_FILE_TYPE;
-	strcpy(datagram.data, fileHelper->getFilename());
+	strcpy(datagram.data, fileHelper->getFilename().c_str());
+
 	this->sendDatagram(datagram);
 
 	// Send file
@@ -252,7 +253,7 @@ std::string Socket::receive_file(std::string filename)
 {
 	tDatagram datagram;
 	std::fstream file;
-	
+
 	file.open(filename.c_str(), std::ios::binary | std::ios::out);
 	datagram = this->receiveDatagram();
 	while(datagram.type == FILE_TYPE && datagram.type != END_DATA)
@@ -330,7 +331,7 @@ void Socket::send_list_server(UserServer* user)
 		file->pathname = f->pathname;
 		file->last_modified = f->last_modified;
 		
-		fileInfo = std::string(file->getFilename());
+		fileInfo = file->getFilename();
 		fileInfo += "#";
 		fileInfo += std::to_string(file->getSize());
 		fileInfo += "#";
