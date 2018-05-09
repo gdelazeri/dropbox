@@ -25,8 +25,8 @@ class Socket
 		bool sendDatagram(tDatagram datagram);
 		tDatagram receiveDatagram();
 		
-		void get_file(std::string filename);
-		bool send_file(std::string filename);
+		std::string get_file(std::string filename, std::string path);
+		bool send_file(std::string pathname, std::string modificationTime);
 		std::string receive_file(std::string filename);
 		bool close_session();
 		std::list<File> list_server();

@@ -184,7 +184,7 @@ tDatagram Socket::receiveDatagram()
 	return datagram;
 }
 
-bool Socket::send_file(std::string pathname)
+bool Socket::send_file(std::string pathname, std::string modificationTime)
 {
 	File* fileHelper = new File(pathname);
 
@@ -222,7 +222,11 @@ bool Socket::send_file(std::string pathname)
 
 	// Send last modification time
 	datagram.type = MODIFICATION_TIME;
-	strcpy(datagram.data, fileHelper->getTime('M').c_str());
+	if (!modificationTime.empty())
+		strcpy(datagram.data, modificationTime.c_str());
+	else
+		strcpy(datagram.data, fileHelper->getTime('M').c_str());
+
 	this->sendDatagram(datagram);
 
 	file.close();
@@ -232,7 +236,7 @@ bool Socket::send_file(std::string pathname)
 }
 
 // Used just by Client Side Socket
-void Socket::get_file(std::string filename)
+std::string Socket::get_file(std::string filename, std::string path)
 {
 	tDatagram datagram;
 
@@ -243,9 +247,9 @@ void Socket::get_file(std::string filename)
 
 	datagram = this->receiveDatagram();
 	if (datagram.type == BEGIN_FILE_TYPE)
-	{
-		this->receive_file(std::string(datagram.data));
-	}
+		return this->receive_file(path + std::string(datagram.data));
+
+	return std::string();
 }
 
 
@@ -269,7 +273,7 @@ std::string Socket::receive_file(std::string filename)
 	if (datagram.type == MODIFICATION_TIME) {
 		return std::string(datagram.data);
 	}
-	return "";
+	return std::string();
 }
 
 bool Socket::close_session()

@@ -41,7 +41,7 @@ void User::executeRequest(Socket* socket)
         Request req = this->requestsToSend.front();
     
         if (req.type == UPLOAD_REQUEST){
-            socket->send_file(req.argument);
+            socket->send_file(req.argument, std::string());
         }
         if (req.type == EXIT_REQUEST){
             socket->close_session();
@@ -58,7 +58,7 @@ void User::processResquest(Socket* socket)
         Request req = this->requestsToReceive.front();
     
         if (req.type == DOWNLOAD_REQUEST){
-            socket->get_file(req.argument);
+            socket->get_file(req.argument, std::string());
         }
         if (req.type == EXIT_REQUEST){
             socket->close_session();

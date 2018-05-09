@@ -38,9 +38,12 @@ void sendThread(Socket* socket, UserServer* user)
 		datagram = socket->receiveDatagram();
 		switch (datagram.type)
 		{
-			case GET_FILE_TYPE:
-				socket->send_file("server/" + user->getFolderName() + "/" + std::string(datagram.data));
+			case GET_FILE_TYPE: {
+				std::string pathname = "server/" + user->getFolderName() + "/" + std::string(datagram.data);
+				std::string modificationTime = user->getFileModificationTime(pathname);
+				socket->send_file(pathname, modificationTime);
 				break;
+			}
 
 			case LIST_SERVER:
 				socket->send_list_server(user);

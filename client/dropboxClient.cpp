@@ -42,7 +42,7 @@ void syncThread()
 	{
 		std::cout << "Running syncThread\n";
 		std::list<File> systemFiles = user->getFilesFromFS();
-		std::list<std::string> uploadFiles;
+		std::list<std::pair<std::string, std::string>> uploadFiles;
 
 		if (user->files.empty()) {
 			user->files = systemFiles;
@@ -56,18 +56,17 @@ void syncThread()
 					{
 						found = true;
 						if (fsFile->last_modified > userFile->last_modified)
-							uploadFiles.push_back(fsFile->filename);
+							uploadFiles.push_back(std::make_pair(fsFile->filename, fsFile->last_modified));
 					}
 				}
-
 				if (!found)
-					uploadFiles.push_back(fsFile->filename);
+					uploadFiles.push_back(std::make_pair(fsFile->filename, fsFile->last_modified));
 			}
 		}
 
-		for(std::list<std::string>::iterator f = uploadFiles.begin(); f != uploadFiles.end(); f++)
+		for(std::list<std::pair<std::string, std::string>>::iterator f = uploadFiles.begin(); f != uploadFiles.end(); f++)
 		{
-			std::cout << *f << '\n'; 
+			std::cout << (*f).first << " - "<< (*f).second << '\n'; 
 		}
 		
 		std::this_thread::sleep_for (std::chrono::seconds(10));
@@ -157,7 +156,7 @@ int main(int argc, char* argv[])
 	}
 	user->login(argv[1]);
     say("User: " + user->userid);
-	
+
 	// Create main communication
 	Socket* mainSocket = new Socket(SOCK_CLIENT);
 	mainSocket->login_server(argv[2], atoi(argv[3]));
@@ -182,12 +181,12 @@ int main(int argc, char* argv[])
 	// Create threads
 	std::thread receiver(receiveThread, receiverSocket);
 	std::thread sender(sendThread, senderSocket);
-	std::thread sync(syncThread);
+	// std::thread sync(syncThread);
 	std::thread shell(shellThread);
 
 	receiver.detach();
 	sender.detach();
-	sync.detach();
+	// sync.detach();
 	shell.join();
 
 	return 0;
