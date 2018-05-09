@@ -4,7 +4,7 @@
 void saveUsersServer(std::list<UserServer*> users)
 {
     std::fstream file;
-    file.open("db.txt", std::ios::out);
+    file.open("server/database.txt", std::ios::out);
     for (std::list<UserServer*>::iterator it = users.begin(); it != users.end(); ++it)
     {
         file << "#user\n";
@@ -29,7 +29,7 @@ std::list<UserServer*> loadUsersServer()
     std::fstream file;
     std::string line; 
 
-    file.open("db.txt", std::ios::in);
+    file.open("server/database.txt", std::ios::in);
     while (std::getline(file, line))
     {
         if (line == "#user") 
@@ -65,26 +65,25 @@ std::list<UserServer*> loadUsersServer()
     return usersDB;
 }
 
-void printUsers(std::list<UserServer*> users)
+void printUsersServer(std::list<UserServer*> users)
 {
-    // for (std::list<UserServer*>::iterator it = users.begin(); it != users.end(); ++it)
-    // {
-    //     std::cout << (*it)->userid << "\n";
-    //     if (!(*it)->files.empty())
-    //     {
-    //         std::cout << "#files: " << "\n";
-    //         for (std::list<File*>::iterator f = (*it)->files.begin(); f != (*it)->files.end(); ++f)
-    //         {
-    //             std::cout << "-\n";
-    //             std::cout << (*f)->pathname << "\n";
-    //             std::cout << (*f)->name << "\n";
-    //             std::cout << (*f)->extension << "\n";
-    //             std::cout << (*f)->last_modified << "\n";
-    //             std::cout << (*f)->size << "\n";
-    //         }
-    //     }
-    //     std::cout << "\n";
-	// }
+    for (std::list<UserServer*>::iterator it = users.begin(); it != users.end(); ++it)
+    {
+        std::cout << "User: " << (*it)->userid << "\n";
+        if (!(*it)->files.empty())
+        {
+            std::cout << "#files: " << "\n";
+            for (std::list<File>::iterator f = (*it)->files.begin(); f != (*it)->files.end(); ++f)
+            {
+                std::cout << f->pathname << "\t";
+                // std::cout << f->name << "\t";
+                // std::cout << f->extension << "\t";
+                // std::cout << f->size << "\t";
+                std::cout << f->last_modified << "\t\n";
+            }
+        }
+        std::cout << "\n\n";
+	}
 }
 
 int createNewPort(std::list<int> portsInUse){
