@@ -6,4 +6,6 @@ gd
 #files
 server/sync_dir_gd/testBig.txt
 2018/05/08 19:32:03
+server/sync_dir_gd/test.txt
+2018/05/08 19:32:03
 #end

@@ -89,3 +89,26 @@ std::string File::getTime(char type)
 
     return std::string(datetime);
 }
+
+int File::getInode(std::string path)
+{
+    // struct stat file_stat;  
+    // int ret = stat((path+this->filename).c_str(), &file_stat);  
+    // if (ret < 0) {  
+    //     return -1; 
+    // } 
+    // return file_stat.st_ino;
+
+    struct stat var;                             //a variable that can store the stat information if the file we provide.
+    int ret = stat((path+this->filename).c_str(),&var);                        //call the fuction stat for file name ‘fname’ and store the values in ‘var’.
+
+    if(ret<0)
+    {
+        return -1;
+    }
+    else
+    {
+        std::cout << "Inode number: " << var.st_ino << '\n';
+        return var.st_ino;
+    }
+}

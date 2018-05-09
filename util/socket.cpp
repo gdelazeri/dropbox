@@ -322,13 +322,13 @@ void Socket::list_server()
 
 void Socket::send_list_server(UserServer* user)
 {
-	for (std::list<File*>::iterator f = user->files.begin(); f != user->files.end(); ++f)
+	for (std::list<File>::iterator f = user->files.begin(); f != user->files.end(); ++f)
 	{
 		tDatagram datagram;
 		std::string fileInfo;
 		File* file = new File();
-		file->pathname = (*f)->pathname;
-		file->last_modified = (*f)->last_modified;
+		file->pathname = f->pathname;
+		file->last_modified = f->last_modified;
 		
 		fileInfo = std::string(file->getFilename());
 		fileInfo += "#";

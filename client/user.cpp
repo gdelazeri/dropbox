@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <dirent.h>
 
 void User::login(std::string userid)
 {
@@ -69,3 +70,31 @@ void User::processResquest(Socket* socket)
         this->requestsToReceive.pop();
     }
 }
+
+std::string User::getFolderName()
+{
+    return "client/sync_dir_" + this->userid;
+}
+
+std::list<File> User::getFilesFromFS()
+{
+    std::list<File> systemFiles;
+	DIR *dir;
+	struct dirent *ent;
+
+	if ((dir = opendir(this->getFolderName().c_str())) != NULL) {
+		while ((ent = readdir(dir)) != NULL) {
+			if (std::string(ent->d_name) != "." && std::string(ent->d_name) != "..") {
+				File newFile;
+				newFile.filename = ent->d_name;
+				newFile.last_modified = newFile.getTime('M');
+				newFile.inode = ent->d_ino;
+				systemFiles.push_back(newFile);
+			}
+		}
+		closedir (dir);
+	}
+
+    return systemFiles;
+}
+

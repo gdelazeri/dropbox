@@ -36,6 +36,37 @@ void say(std::string message)
 		std::cout << "[" << user->userid << "@dropbox] "  << message << "\n";
 }
 
+void syncThread()
+{
+	// std::list<File> systemFiles = user->getFilesFromFS();
+	// std::list<std::string> syncFiles;
+
+	// for (std::list<File*>::iterator fsFile = systemFiles.begin(); fsFile != systemFiles.end(); ++fsFile)
+	// {
+	// }
+
+	// if (user->files.empty()) {
+	// 	user->files = systemFiles;
+	// } else {
+	// 	for (std::list<File*>::iterator fsFile = systemFiles.begin(); fsFile != systemFiles.end(); ++fsFile)
+	// 	{
+	// 		for (std::list<File*>::iterator userFile = user->files.begin(); userFile != user->files.end(); ++userFile)
+	// 		{
+	// 			if ((*fsFile)->filename == (*userFile)->filename)
+	// 			{
+	// 				if ((*fsFile)->last_modified > (*userFile)->last_modified)
+	// 				{
+	// 					syncFiles.push_back((*fsFile)->filename);
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+
+
+}
+
 void sendThread(Socket* socket)
 {
 	while(user->logged_in)
@@ -108,6 +139,9 @@ void shellThread()
 
 int main(int argc, char* argv[])
 {
+	// syncThread();
+	// return 0;
+
 	tDatagram datagram;
 
 	// signal(SIGINT, signalHandler);

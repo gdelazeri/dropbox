@@ -14,6 +14,7 @@ class User
         int logged_in;
         std::queue<Request> requestsToSend;
         std::queue<Request> requestsToReceive;
+        std::list<File*> files;
 
         void addRequestToSend(Request newRequest);
         void addRequestToReceive(Request newRequest);
@@ -22,6 +23,9 @@ class User
         void login(std::string userid);
         void logout();
         bool createDir();
+        std::string getFolderName();
+
+        std::list<File> getFilesFromFS();
         
 };
 #endif

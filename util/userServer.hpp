@@ -10,7 +10,7 @@ class UserServer
 	public:
 		int	devices[2];
         std::string userid;
-        std::list<File*> files;
+        std::list<File> files;
 		int logged_in;
 
 		void login();
