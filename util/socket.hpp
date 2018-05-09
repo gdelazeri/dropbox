@@ -29,7 +29,7 @@ class Socket
 		bool send_file(std::string filename);
 		std::string receive_file(std::string filename);
 		bool close_session();
-		void list_server();
+		std::list<File> list_server();
 		void send_list_server(UserServer* user);
 
 		bool sendAck();

@@ -64,7 +64,19 @@ void User::processResquest(Socket* socket)
             socket->close_session();
         }
         if (req.type == LIST_SERVER_REQUEST){
-            socket->list_server();
+            std::list<File> filesList;
+            
+            filesList = socket->list_server();
+
+            std::cout << "filename\tsize\tmodified\t\taccess\t\t\tcreation\n";
+
+            for (std::list<File>::iterator f = filesList.begin(); f != filesList.end(); ++f) {
+                std::cout << f->filename << "\t ";
+                std::cout << f->size << "\t ";
+                std::cout << f->last_modified << "\t ";
+                std::cout << f->access_time << "\t ";
+                std::cout << f->creation_time << "\t\n ";
+            }
         }
 
         this->requestsToReceive.pop();

@@ -200,7 +200,8 @@ bool Socket::send_file(std::string pathname)
 	
 	// Send filename
 	datagram.type = BEGIN_FILE_TYPE;
-	strcpy(datagram.data, fileHelper->getFilename());
+	strcpy(datagram.data, fileHelper->getFilename().c_str());
+
 	this->sendDatagram(datagram);
 
 	// Send file
@@ -252,7 +253,7 @@ std::string Socket::receive_file(std::string filename)
 {
 	tDatagram datagram;
 	std::fstream file;
-	
+
 	file.open(filename.c_str(), std::ios::binary | std::ios::out);
 	datagram = this->receiveDatagram();
 	while(datagram.type == FILE_TYPE && datagram.type != END_DATA)
@@ -284,41 +285,56 @@ void Socket::finish()
 	close(this->socketFd);
 }
 
-void Socket::list_server()
+std::list<File> Socket::list_server()
 {
 	tDatagram datagram;
-	std::cout << "filename\tsize\tmodified\t\taccess\t\t\tcreation\n";
-
+	std::list<File> filesList;
+	
 	datagram.type = LIST_SERVER;
 	this->sendDatagram(datagram);
 
 	datagram = this->receiveDatagram();
 	while(datagram.type == FILE_INFO && datagram.type != END_DATA)
 	{
+		//std::cout << "Datagram: " << datagram.data << "\n";
+
+		File newFile;
+
 		int pos = 0, posEnd;
 		std::string fileInfo = std::string(datagram.data);
+		
 		posEnd = fileInfo.find("#");
-		std::cout << fileInfo.substr(pos, posEnd-pos) << "\t ";
+		newFile.filename = fileInfo.substr(pos, posEnd-pos);
+		//std::cout << fileInfo.substr(pos, posEnd-pos) << "\t ";
 
 		pos = posEnd+1;
 		posEnd = fileInfo.find("#", posEnd+1);
-		std::cout << fileInfo.substr(pos, posEnd-pos) << "\t";
+		newFile.size = atoi(fileInfo.substr(pos, posEnd-pos).c_str());
+		// std::cout << fileInfo.substr(pos, posEnd-pos) << "\t";
 
 		pos = posEnd+1;
 		posEnd = fileInfo.find("#", posEnd+1);
-		std::cout << fileInfo.substr(pos, posEnd-pos) << "\t";
+		newFile.last_modified = fileInfo.substr(pos, posEnd-pos);
+		// std::cout << fileInfo.substr(pos, posEnd-pos) << "\t";
 
 		pos = posEnd+1;
 		posEnd = fileInfo.find("#", posEnd+1);
-		std::cout << fileInfo.substr(pos, posEnd-pos) << "\t";
+		newFile.access_time = fileInfo.substr(pos, posEnd-pos);
+		// // std::cout << fileInfo.substr(pos, posEnd-pos) << "\t";
 
 		pos = posEnd+1;
 		posEnd = fileInfo.find("#", posEnd+1);
-		std::cout << fileInfo.substr(pos, posEnd-pos) << "\t\n";
+		newFile.creation_time = fileInfo.substr(pos, posEnd-pos);
+		// std::cout << fileInfo.substr(pos, posEnd-pos) << "\t\n";
+
+		filesList.push_back(newFile);
 
 		datagram = this->receiveDatagram();
 	}
+
+	return filesList;
 }
+
 
 void Socket::send_list_server(UserServer* user)
 {
@@ -330,7 +346,7 @@ void Socket::send_list_server(UserServer* user)
 		file->pathname = f->pathname;
 		file->last_modified = f->last_modified;
 		
-		fileInfo = std::string(file->getFilename());
+		fileInfo = file->getFilename();
 		fileInfo += "#";
 		fileInfo += std::to_string(file->getSize());
 		fileInfo += "#";
