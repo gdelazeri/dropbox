@@ -38,33 +38,40 @@ void say(std::string message)
 
 void syncThread()
 {
-	// std::list<File> systemFiles = user->getFilesFromFS();
-	// std::list<std::string> syncFiles;
+	while(user->logged_in)
+	{
+		std::cout << "Running syncThread\n";
+		std::list<File> systemFiles = user->getFilesFromFS();
+		std::list<std::string> uploadFiles;
 
-	// for (std::list<File*>::iterator fsFile = systemFiles.begin(); fsFile != systemFiles.end(); ++fsFile)
-	// {
-	// }
+		if (user->files.empty()) {
+			user->files = systemFiles;
+		} else {
+			for (std::list<File>::iterator fsFile = systemFiles.begin(); fsFile != systemFiles.end(); ++fsFile)
+			{
+				bool found = false;
+				for (std::list<File>::iterator userFile = user->files.begin(); userFile != user->files.end(); ++userFile)
+				{
+					if (fsFile->inode == userFile->inode)
+					{
+						found = true;
+						if (fsFile->last_modified > userFile->last_modified)
+							uploadFiles.push_back(fsFile->filename);
+					}
+				}
 
-	// if (user->files.empty()) {
-	// 	user->files = systemFiles;
-	// } else {
-	// 	for (std::list<File*>::iterator fsFile = systemFiles.begin(); fsFile != systemFiles.end(); ++fsFile)
-	// 	{
-	// 		for (std::list<File*>::iterator userFile = user->files.begin(); userFile != user->files.end(); ++userFile)
-	// 		{
-	// 			if ((*fsFile)->filename == (*userFile)->filename)
-	// 			{
-	// 				if ((*fsFile)->last_modified > (*userFile)->last_modified)
-	// 				{
-	// 					syncFiles.push_back((*fsFile)->filename);
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
+				if (!found)
+					uploadFiles.push_back(fsFile->filename);
+			}
+		}
 
-
-
+		for(std::list<std::string>::iterator f = uploadFiles.begin(); f != uploadFiles.end(); f++)
+		{
+			std::cout << *f << '\n'; 
+		}
+		
+		std::this_thread::sleep_for (std::chrono::seconds(10));
+	}
 }
 
 void sendThread(Socket* socket)
@@ -139,8 +146,6 @@ void shellThread()
 
 int main(int argc, char* argv[])
 {
-	// syncThread();
-	// return 0;
 
 	tDatagram datagram;
 
@@ -152,7 +157,7 @@ int main(int argc, char* argv[])
 	}
 	user->login(argv[1]);
     say("User: " + user->userid);
-
+	
 	// Create main communication
 	Socket* mainSocket = new Socket(SOCK_CLIENT);
 	mainSocket->login_server(argv[2], atoi(argv[3]));
@@ -177,11 +182,15 @@ int main(int argc, char* argv[])
 	// Create threads
 	std::thread receiver(receiveThread, receiverSocket);
 	std::thread sender(sendThread, senderSocket);
+	std::thread sync(syncThread);
 	std::thread shell(shellThread);
 
 	receiver.detach();
 	sender.detach();
+	sync.detach();
 	shell.join();
+
+	return 0;
 	
 	// std::thread noti(notifyThread, thisDevice, thisFolder);
 

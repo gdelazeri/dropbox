@@ -86,7 +86,8 @@ std::list<File> User::getFilesFromFS()
 		while ((ent = readdir(dir)) != NULL) {
 			if (std::string(ent->d_name) != "." && std::string(ent->d_name) != "..") {
 				File newFile;
-				newFile.filename = ent->d_name;
+				newFile.pathname = this->getFolderName() + "/" + std::string(ent->d_name);
+				newFile.filename = std::string(ent->d_name);
 				newFile.last_modified = newFile.getTime('M');
 				newFile.inode = ent->d_ino;
 				systemFiles.push_back(newFile);

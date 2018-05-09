@@ -9,3 +9,15 @@ server/sync_dir_gd/testBig.txt
 server/sync_dir_gd/test.txt
 2018/05/08 19:32:03
 #end
+#user
+marcelo
+#files
+server/sync_dir_marcelo/test.txt
+2018/05/08 19:32:03
+#end
+#user
+marcelubas
+#files
+server/sync_dir_marcelubas/test.txt
+2018/05/08 19:32:03
+#end

@@ -14,7 +14,7 @@ class User
         int logged_in;
         std::queue<Request> requestsToSend;
         std::queue<Request> requestsToReceive;
-        std::list<File*> files;
+        std::list<File> files;
 
         void addRequestToSend(Request newRequest);
         void addRequestToReceive(Request newRequest);
