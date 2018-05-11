@@ -72,7 +72,6 @@ void receiveThread(Socket* socket, UserServer* user)
 		{
 			case BEGIN_FILE_TYPE: {
 				std::string pathname = user->getFolderPath() + "/" + std::string(datagram.data);
-
 				std::string modificationTime = socket->receive_file(pathname);
 				user->addFile(pathname, modificationTime);
 				saveUsersServer(users);
@@ -121,7 +120,7 @@ int main(int argc, char* argv[])
 
     Socket* mainSocket = new Socket(SOCK_SERVER);
 	mainSocket->login_server(std::string(), SERVER_PORT);
-	say("server online");
+	say("Server Online");
 
 	while(true) 
 	{
@@ -131,7 +130,7 @@ int main(int argc, char* argv[])
 		if (datagram.type == LOGIN)
 		{
 			user = searchUser(std::string(datagram.data));
-			say("new login: " + user->userid);
+			say("New login: " + user->userid);
 			saveUsersServer(users);
 		
 			Socket* receiverSocket = new Socket(SOCK_SERVER);

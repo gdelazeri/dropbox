@@ -186,21 +186,23 @@ tDatagram Socket::receiveDatagram()
 
 bool Socket::send_file(std::string pathname, std::string modificationTime)
 {
-	File* fileHelper = new File(pathname);
+	File fileHelper;
+	fileHelper.pathname = pathname;
 
-	if (!fileHelper->exists())
+	if (!fileHelper.exists()){
 		return false;
+	}
 
 	tDatagram datagram;
 	std::fstream file;
-	int bytesSent = 0, bytesToRead = 0, fileSize = fileHelper->size;
+	int bytesSent = 0, bytesToRead = 0, fileSize = fileHelper.getSize();
 	char buffer[MAX_DATA_SIZE];
 
 	file.open(pathname.c_str(), std::ios::binary | std::ios::in);
-	
+
 	// Send filename
 	datagram.type = BEGIN_FILE_TYPE;
-	strcpy(datagram.data, fileHelper->getFilename().c_str());
+	strcpy(datagram.data, fileHelper.getFilename().c_str());
 
 	this->sendDatagram(datagram);
 
@@ -225,12 +227,12 @@ bool Socket::send_file(std::string pathname, std::string modificationTime)
 	if (!modificationTime.empty())
 		strcpy(datagram.data, modificationTime.c_str());
 	else
-		strcpy(datagram.data, fileHelper->getTime('M').c_str());
+		strcpy(datagram.data, fileHelper.getTime('M').c_str());
 
 	this->sendDatagram(datagram);
 
 	file.close();
-	delete fileHelper;
+	// delete fileHelper;
 
 	return true;
 }

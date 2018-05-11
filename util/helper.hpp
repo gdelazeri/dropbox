@@ -43,6 +43,8 @@ std::pair<int, int> getPorts(char* data);
 #define EXIT_REQUEST 2
 #define DOWNLOAD_REQUEST 3
 #define LIST_SERVER_REQUEST 4
+#define DOWNLOAD_SYNC_REQUEST 5
+#define UPLOAD_SYNC_REQUEST 6
 
 typedef struct tDatagram
 {

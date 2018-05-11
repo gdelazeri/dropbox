@@ -36,40 +36,63 @@ void say(std::string message)
 		std::cout << "[" << user->userid << "@dropbox] "  << message << "\n";
 }
 
-void syncThread()
+void syncThread(Socket* receiverSocket)
 {
 	while(user->logged_in)
 	{
-		std::cout << "Running syncThread\n";
-		std::list<File> systemFiles = user->getFilesFromFS();
-		std::list<std::pair<std::string, std::string>> uploadFiles;
+		std::list<File> localFiles, serverFiles, upload, download, aux;
 
-		if (user->files.empty()) {
-			user->files = systemFiles;
-		} else {
-			for (std::list<File>::iterator fsFile = systemFiles.begin(); fsFile != systemFiles.end(); ++fsFile)
-			{
-				bool found = false;
-				for (std::list<File>::iterator userFile = user->files.begin(); userFile != user->files.end(); ++userFile)
+		upload = std::list<File>();
+		download = std::list<File>();
+		localFiles = user->compareLocalLocal(user->getFilesFromFS());
+		serverFiles = user->compareLocalServer(receiverSocket);
+
+		for (auto upFile = localFiles.begin(); upFile != localFiles.end(); upFile++) {
+			bool intersec = false;
+			for (auto downFile = serverFiles.begin(); downFile != serverFiles.end(); downFile++) {
+				if (upFile->filename == downFile->filename)
 				{
-					if (fsFile->inode == userFile->inode)
-					{
-						found = true;
-						if (fsFile->last_modified > userFile->last_modified)
-							uploadFiles.push_back(std::make_pair(fsFile->filename, fsFile->last_modified));
-					}
+					intersec = true;
+					if (upFile->last_modified > downFile->last_modified)
+						upload.push_back(*upFile);
 				}
-				if (!found)
-					uploadFiles.push_back(std::make_pair(fsFile->filename, fsFile->last_modified));
 			}
+			if (!intersec)
+				upload.push_back(*upFile);
+		}
+			
+
+		for (auto downFile = serverFiles.begin(); downFile != serverFiles.end(); downFile++) {
+			bool intersec = false;
+			for (auto upFile = localFiles.begin(); upFile != localFiles.end(); upFile++) {
+				if (upFile->filename == downFile->filename)
+				{
+					intersec = true;
+					if (upFile->last_modified <= downFile->last_modified)
+						download.push_back(*downFile);
+				}
+			}
+			if (!intersec)
+				download.push_back(*downFile);
 		}
 
-		for(std::list<std::pair<std::string, std::string>>::iterator f = uploadFiles.begin(); f != uploadFiles.end(); f++)
-		{
-			std::cout << (*f).first << " - "<< (*f).second << '\n'; 
-		}
+		user->updateFiles(upload, download);
+		for (auto it = upload.begin(); it != upload.end(); ++it)
+			user->addRequestToSend(Request(UPLOAD_SYNC_REQUEST, it->filename, it->last_modified));
+
+		for (auto it = download.begin(); it != download.end(); ++it)
+			user->addRequestToReceive(Request(DOWNLOAD_SYNC_REQUEST, it->filename));
+
+		// for (std::list<File>::iterator userFile = user->files.begin(); userFile != user->files.end(); ++userFile)
+		// {
+		// 	std::cout << "filename: " << userFile->filename;
+		// 	std::cout << " - last_modified: " << userFile->last_modified;
+		// 	std::cout << " - inode: " << userFile->inode;
+		// 	std::cout << " - getInode: " << userFile->getInode(user->getFolderPath() + "/") << '\n';
+		// }
 		
-		std::this_thread::sleep_for (std::chrono::seconds(10));
+		user->save();
+		std::this_thread::sleep_for(std::chrono::seconds(10));
 	}
 }
 
@@ -77,7 +100,6 @@ void sendThread(Socket* socket)
 {
 	while(user->logged_in)
 	{
-		// std::cout << "sendThread\n";
 		user->executeRequest(socket);
 	}
 	socket->finish();
@@ -88,8 +110,7 @@ void receiveThread(Socket* socket)
 {
 	while(user->logged_in)
 	{
-		// std::cout << "receiveThread\n";
-		user->processResquest(socket);
+		user->processRequest(socket);
 	}
 	socket->finish();
 	delete socket;
@@ -156,6 +177,7 @@ int main(int argc, char* argv[])
 	}
 	user->login(argv[1]);
     say("User: " + user->userid);
+	user->load();
 
 	// Create main communication
 	Socket* mainSocket = new Socket(SOCK_CLIENT);
@@ -181,13 +203,15 @@ int main(int argc, char* argv[])
 	// Create threads
 	std::thread receiver(receiveThread, receiverSocket);
 	std::thread sender(sendThread, senderSocket);
-	// std::thread sync(syncThread);
+	std::thread sync(syncThread, receiverSocket);
 	std::thread shell(shellThread);
 
 	receiver.detach();
 	sender.detach();
-	// sync.detach();
+	sync.detach();
 	shell.join();
+
+	user->save();
 
 	return 0;
 	
