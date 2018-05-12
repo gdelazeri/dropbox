@@ -10,7 +10,7 @@ class Device
         UserServer* user;
 
         Device(UserServer* user);
-		void connect();
-		void disconnect();
+		bool connect();
+		bool disconnect();
 };
 #endif

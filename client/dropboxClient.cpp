@@ -190,8 +190,10 @@ int main(int argc, char* argv[])
 
 	// Receive ports
 	datagram = mainSocket->receiveDatagram();
-	if (datagram.type != NEW_PORTS)
-		return 1;
+	if (datagram.type != NEW_PORTS) {
+		std::cout << datagram.data << std::endl;
+		exit(0);
+	}
 	std::pair<int, int> ports = getPorts(datagram.data);
 
 	// Create sender and receiver communication

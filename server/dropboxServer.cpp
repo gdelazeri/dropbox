@@ -19,6 +19,7 @@
 #include <string.h>
 
 #include "socket.hpp"
+#include "device.hpp"
 
 std::list<int> portsInUse;
 std::list<UserServer*> users;
@@ -28,29 +29,29 @@ void say(std::string message){
 	std::cout << SERVER_NAME << message << "\n";
 }
 				
-void sendThread(Socket* socket, UserServer* user)
+void sendThread(Socket* socket, Device* device)
 {
 	tDatagram datagram;
 	say("Send thread");
 	
-	while(user->logged_in)
+	while(device->connected)
 	{
 		datagram = socket->receiveDatagram();
 		switch (datagram.type)
 		{
 			case GET_FILE_TYPE: {
-				std::string pathname = "server/" + user->getFolderName() + "/" + std::string(datagram.data);
-				std::string modificationTime = user->getFileModificationTime(pathname);
+				std::string pathname = "server/" + device->user->getFolderName() + "/" + std::string(datagram.data);
+				std::string modificationTime = device->user->getFileModificationTime(pathname);
 				socket->send_file(pathname, modificationTime);
 				break;
 			}
 
 			case LIST_SERVER:
-				socket->send_list_server(user);
+				socket->send_list_server(device->user);
 				break;
 
 			case CLOSE:
-				user->logged_in = 0;
+				device->disconnect();
 				break;
 		}
 	}
@@ -60,25 +61,25 @@ void sendThread(Socket* socket, UserServer* user)
 	delete socket;
 }
 
-void receiveThread(Socket* socket, UserServer* user)
+void receiveThread(Socket* socket, Device* device)
 {
 	tDatagram datagram;
 	say("Receive thread");
 	
-	while(user->logged_in)
+	while(device->connected)
 	{
 		datagram = socket->receiveDatagram();
 		switch (datagram.type)
 		{
 			case BEGIN_FILE_TYPE: {
-				std::string pathname = user->getFolderPath() + "/" + std::string(datagram.data);
+				std::string pathname = device->user->getFolderPath() + "/" + std::string(datagram.data);
 				std::string modificationTime = socket->receive_file(pathname);
-				user->addFile(pathname, modificationTime);
+				device->user->addFile(pathname, modificationTime);
 				saveUsersServer(users);
 				break;
 			}
 			case CLOSE:
-				user->logged_in = 0;
+				device->disconnect();
 				break;
 		}
 	}
@@ -93,14 +94,12 @@ UserServer* searchUser(std::string userid)
 	for (std::list<UserServer*>::iterator it = users.begin(); it != users.end(); ++it){
     	if ((*it)->userid == userid)
 		{
-			(*it)->logged_in = 1;
 			(*it)->createDir("server");
 			return (*it);
 		}
 	}
 	UserServer* newUserServer = new UserServer();
 	newUserServer->userid = userid;
-	newUserServer->logged_in = 1;
 	newUserServer->createDir("server");
 	users.push_back(newUserServer);
 
@@ -132,25 +131,33 @@ int main(int argc, char* argv[])
 			user = searchUser(std::string(datagram.data));
 			say("New login: " + user->userid);
 			saveUsersServer(users);
-		
-			Socket* receiverSocket = new Socket(SOCK_SERVER);
-			Socket* senderSocket = new Socket(SOCK_SERVER);
+			Device* newDevice = new Device(user);
 
-			int portReceiver = createNewPort(portsInUse);
-			int portSender = createNewPort(portsInUse);
-			receiverSocket->login_server(std::string(), portReceiver);
-			senderSocket->login_server(std::string(), portSender);
+			if (newDevice->connect()) {
+				Socket* receiverSocket = new Socket(SOCK_SERVER);
+				Socket* senderSocket = new Socket(SOCK_SERVER);
 
-			std::string ports = std::to_string(portReceiver)+std::to_string(portSender);
-			datagram.type = NEW_PORTS;
-			strcpy(datagram.data, (char *) ports.c_str());
-			mainSocket->sendDatagram(datagram);
+				int portReceiver = createNewPort(portsInUse);
+				int portSender = createNewPort(portsInUse);
+				receiverSocket->login_server(std::string(), portReceiver);
+				senderSocket->login_server(std::string(), portSender);
 
-			std::thread rcv(receiveThread, receiverSocket, user);
-			std::thread snd(sendThread, senderSocket, user);
-			
-			rcv.detach();	
-			snd.detach();
+				std::string ports = std::to_string(portReceiver)+std::to_string(portSender);
+				datagram.type = NEW_PORTS;
+				strcpy(datagram.data, (char *) ports.c_str());
+				mainSocket->sendDatagram(datagram);
+
+				std::thread rcv(receiveThread, receiverSocket, newDevice);
+				std::thread snd(sendThread, senderSocket, newDevice);
+				
+				rcv.detach();	
+				snd.detach();
+			}
+			else {
+				datagram.type = ERROR;
+				strcpy(datagram.data, "Too many devices for this user. Try again later.");
+				mainSocket->sendDatagram(datagram);
+			}
 		}
 	}
 

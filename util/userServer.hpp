@@ -8,10 +8,9 @@
 class UserServer
 {
 	public:
-		int	devices[2];
+		int	devices;
         std::string userid;
         std::list<File> files;
-		int logged_in;
 
 		void login();
 		void logout();

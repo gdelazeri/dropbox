@@ -8,3 +8,6 @@ server/sync_dir_dela/teste1419.txt
 server/sync_dir_dela/testBig2.txt
 2018/05/11 14:47:13
 #end
+#user
+gdelazeri
+#end

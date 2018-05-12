@@ -1,16 +1,35 @@
 #include "device.hpp"
+#include <iostream>
 
 Device::Device(UserServer* user)
 {
 	this->user = user;
 }
 
-void Device::connect()
+bool Device::connect()
 {
-	this->connected = 1;
+	if (this->user->devices < 2)
+	{
+		this->user->devices++;
+		this->connected = 1;
+		return true;
+	}
+	else 
+	{
+		return false;
+	}
 }
 
-void Device::disconnect()
+bool Device::disconnect()
 {
-	this->connected = 0;
+	if (this->user->devices > 0)
+	{
+		this->user->devices--;
+		this->connected = 0;
+		return true;
+	}
+	else 
+	{
+		return false;
+	}
 }
