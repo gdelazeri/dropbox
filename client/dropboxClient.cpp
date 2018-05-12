@@ -40,7 +40,7 @@ void syncThread(Socket* receiverSocket)
 {
 	while(user->logged_in)
 	{
-		std::list<File> localFiles, serverFiles, upload, download, aux;
+		std::list<File> localFiles, serverFiles, upload, download;
 
 		upload = std::list<File>();
 		download = std::list<File>();
@@ -83,14 +83,6 @@ void syncThread(Socket* receiverSocket)
 		for (auto it = download.begin(); it != download.end(); ++it)
 			user->addRequestToReceive(Request(DOWNLOAD_SYNC_REQUEST, it->filename));
 
-		// for (std::list<File>::iterator userFile = user->files.begin(); userFile != user->files.end(); ++userFile)
-		// {
-		// 	std::cout << "filename: " << userFile->filename;
-		// 	std::cout << " - last_modified: " << userFile->last_modified;
-		// 	std::cout << " - inode: " << userFile->inode;
-		// 	std::cout << " - getInode: " << userFile->getInode(user->getFolderPath() + "/") << '\n';
-		// }
-		
 		user->save();
 		std::this_thread::sleep_for(std::chrono::seconds(10));
 	}
@@ -162,6 +154,7 @@ void shellThread()
 			user->logout();
 		}
 	}
+	say("FIM");
 }
 
 int main(int argc, char* argv[])

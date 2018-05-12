@@ -13,7 +13,16 @@ void User::login(std::string userid)
 
 void User::logout()
 {
-    this->logged_in = 0;
+    // std::cout << "this->requestsToSend: " << this->requestsToSend.size() << std::endl;
+    // std::cout << "this->requestsToReceive: " << this->requestsToReceive.size() << std::endl;
+    // while (this->requestsToSend.size() > 0 || this->requestsToReceive.size() > 0){
+    //     // std::cout << this->requestsToReceive.size() << std::endl;
+    //     continue;
+    // }
+    // std::cout << "\nthis->requestsToSend: " << this->requestsToSend.size() << std::endl;
+    // std::cout << "this->requestsToReceive: " << this->requestsToReceive.size() << std::endl;
+
+    // this->logged_in = 0;
 }
 
 bool User::createDir()
@@ -26,25 +35,45 @@ bool User::createDir()
 
 void User::addRequestToSend(Request newRequest)
 {
-    this->requestsToSend.push(newRequest);
+    if (newRequest.type == EXIT_REQUEST)
+    {
+        while (this->requestsToSend.size() > 0 || this->requestsToReceive.size() > 0)
+        {  };
+        this->requestsToSend.push(newRequest);
+        this->logged_in = 0;
+    }
+    else {
+        this->requestsToSend.push(newRequest);
+    }
 }
 
 void User::addRequestToReceive(Request newRequest)
 {
-    this->requestsToReceive.push(newRequest);
+    if (newRequest.type == EXIT_REQUEST)
+    {
+        while (this->requestsToSend.size() > 0 || this->requestsToReceive.size() > 0)
+        {  };
+        this->requestsToReceive.push(newRequest);
+        this->logged_in = 0;
+    }
+    else
+    {
+        this->requestsToReceive.push(newRequest);
+    }
 }
 
 void User::executeRequest(Socket* socket)
 {
+    // std::cout << "executeRequest" << std::endl;
     if (!this->requestsToSend.empty())
     {
         Request req = this->requestsToSend.front();
-    
+
         if (req.type == UPLOAD_REQUEST){
             socket->send_file(req.argument, std::string());
         }
         if (req.type == UPLOAD_SYNC_REQUEST){
-            std::cout << "Uploading: " << req.argument << "\n";
+            std::cout << "upload sync:" << req.argument << std::endl;
             socket->send_file(this->getFolderPath() + "/" + req.argument, req.argument2);
             this->updateSyncTime();
         }
@@ -58,6 +87,7 @@ void User::executeRequest(Socket* socket)
 
 void User::processRequest(Socket* socket)
 {
+    // std::cout << "processRequest" << std::endl;
     if (!this->requestsToReceive.empty())
     {
         Request req = this->requestsToReceive.front();
