@@ -148,6 +148,19 @@ void shellThread()
 		if(command == "list_server"){
 			user->addRequestToReceive(Request(LIST_SERVER_REQUEST, argument));
 		}
+		if(command == "list_client"){
+			std::list<File> localFiles;
+            localFiles = user->files;
+
+            std::cout << "filename\tsize\t\tmodified\t\taccess\t\t\tcreation\n";
+            for (std::list<File>::iterator f = localFiles.begin(); f != localFiles.end(); ++f) {
+                std::cout << f->filename << "\t ";
+                std::cout << f->size << "\t ";
+                std::cout << f->last_modified << "\t ";
+                std::cout << f->access_time << "\t ";
+                std::cout << f->creation_time << "\t\n";
+            }
+		}
 		if(command == "exit"){
 			user->addRequestToSend(Request(EXIT_REQUEST, argument));
 			user->addRequestToReceive(Request(EXIT_REQUEST, argument));

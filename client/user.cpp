@@ -44,8 +44,12 @@ void User::executeRequest(Socket* socket)
             socket->send_file(req.argument, std::string());
         }
         if (req.type == UPLOAD_SYNC_REQUEST){
+            File uploadedFile;
+            uploadedFile.filename = req.argument;
+            uploadedFile.last_modified = req.argument2;
             std::cout << "upload sync:" << req.argument << std::endl;
             socket->send_file(this->getFolderPath() + "/" + req.argument, req.argument2);
+            this->addFile(uploadedFile);
             this->updateSyncTime();
         }
         if (req.type == EXIT_REQUEST){
@@ -117,6 +121,8 @@ std::list<File> User::getFilesFromFS()
 				newFile.pathname = this->getFolderPath() + "/" + std::string(ent->d_name);
 				newFile.filename = std::string(ent->d_name);
 				newFile.last_modified = newFile.getTime('M');
+				newFile.access_time = newFile.getTime('A');
+				newFile.creation_time = newFile.getTime('C');
 				newFile.inode = newFile.getInode(this->getFolderPath() + "/");
 				systemFiles.push_back(newFile);
 			}
@@ -140,10 +146,18 @@ std::list<File> User::compareLocalLocal(std::list<File> systemFiles)
             {
                 found = true;
                 if (fsFile->last_modified > userFile->last_modified && fsFile->last_modified > this->lastSync) {
+                    if (userFile->filename != fsFile->filename) {
+                        // adicionar o userFile->filename em uma lista para remover depois
+                        // manda deletar no server
+                    }
+
                     uploadFiles.push_back(*fsFile);
                 }
             }
         }
+        
+        // if () remove itens da lista de arquivos do usuário this->files
+
         if (!found) {
             uploadFiles.push_back(*fsFile);
         }
@@ -191,6 +205,8 @@ void User::updateFiles(std::list<File> uploadFiles, std::list<File> downloadFile
             if (newFile->filename == userFile->filename)
             {
                 found = true;
+                // userFile->pathname = this->getFolderPath() + "/" + userFile->filename;
+                // userFile->size = newFile->size;
                 userFile->last_modified = newFile->last_modified;
             }
         }
@@ -213,13 +229,22 @@ void User::addFile(File newFile)
         if (newFile.filename == userFile->filename)
         {
             found = true;
+            userFile->pathname = this->getFolderPath() + "/" + userFile->filename;
+            userFile->inode = userFile->getInode(this->getFolderPath() + "/");
+            userFile->size = userFile->getSize();
             userFile->last_modified = newFile.last_modified;
-            userFile->inode = newFile.getInode(this->getFolderPath() + "/");
+            userFile->access_time = newFile.access_time;
+            userFile->creation_time = newFile.creation_time;
         }
     }
 
     if (!found) {
+        newFile.pathname = this->getFolderPath() + "/" + newFile.filename;
         newFile.inode = newFile.getInode(this->getFolderPath() + "/");
+        newFile.size = newFile.getSize();
+        newFile.last_modified = newFile.last_modified;
+        newFile.access_time = newFile.access_time;
+        newFile.creation_time = newFile.creation_time;
         this->files.push_back(newFile);
     }
 }

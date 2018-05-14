@@ -78,6 +78,12 @@ void receiveThread(Socket* socket, Device* device)
 				saveUsersServer(users);
 				break;
 			}
+
+			case DELETE_TYPE:
+				// deletar arquivo da pasta do usuário
+				// remover o arquivo da lista user->files
+				break;
+
 			case CLOSE:
 				device->disconnect();
 				break;
@@ -87,6 +93,7 @@ void receiveThread(Socket* socket, Device* device)
 	socket->finish();
 	portsInUse.remove(socket->port);
 	delete socket;
+	say("Logout user: " + device->user->userid);
 }
 
 UserServer* searchUser(std::string userid)

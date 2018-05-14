@@ -3,12 +3,6 @@ dela
 #files
 server/sync_dir_dela/big1.txt
 2018/05/12 18:39:20
-server/sync_dir_dela/big2.txt
-2018/05/12 18:39:13
-server/sync_dir_dela/big3.txt
-2018/05/12 18:39:09
-server/sync_dir_dela/big4.txt
-2018/05/12 18:39:07
-server/sync_dir_dela/big5.txt
-2018/05/12 18:39:02
+server/sync_dir_dela/uploadDeNovo.txt
+2018/05/14 10:09:58
 #end

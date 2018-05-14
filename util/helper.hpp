@@ -34,6 +34,7 @@ std::pair<int, int> getPorts(char* data);
 #define LIST_SERVER 'S'
 #define FILE_INFO 'O'
 #define MODIFICATION_TIME 'T'
+#define DELETE_TYPE 'D'
 
 /* Sizes */
 #define BUFFER_SIZE 6000
