@@ -125,7 +125,7 @@ int main(int argc, char* argv[])
 	}
 
     Socket* mainSocket = new Socket(SOCK_SERVER);
-	mainSocket->login_server(std::string(), SERVER_PORT);
+	mainSocket->createSocket(SERVER_PORT);
 	say("Server Online");
 
 	while(true) 
@@ -146,8 +146,8 @@ int main(int argc, char* argv[])
 
 				int portReceiver = createNewPort(portsInUse);
 				int portSender = createNewPort(portsInUse);
-				receiverSocket->login_server(std::string(), portReceiver);
-				senderSocket->login_server(std::string(), portSender);
+				receiverSocket->createSocket(portReceiver);
+				senderSocket->createSocket(portSender);
 
 				std::string ports = std::to_string(portReceiver)+std::to_string(portSender);
 				datagram.type = NEW_PORTS;

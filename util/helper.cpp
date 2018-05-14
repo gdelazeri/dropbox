@@ -108,3 +108,13 @@ std::pair<int, int> getPorts(char* data) {
 
 	return std::make_pair(p1, p2);
 }
+
+std::string getCurrentTime(){
+    time_t     now = time(0);
+    struct tm  tstruct;
+    char       timeNow[80];
+    tstruct = *localtime(&now);
+    strftime(timeNow, sizeof(timeNow), "%Y/%m/%d %H:%M:%S", &tstruct);
+
+    return std::string(timeNow);
+}

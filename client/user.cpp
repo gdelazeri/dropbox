@@ -8,6 +8,8 @@ void User::login(std::string userid)
 {
     this->userid = userid;
     this->logged_in = 1;
+    this->lockShell = 0;
+    // this->isSync = 0;
     this->createDir();
 }
 
@@ -65,7 +67,7 @@ void User::processRequest(Socket* socket)
     if (!this->requestsToReceive.empty())
     {
         Request req = this->requestsToReceive.front();
-    
+
         if (req.type == DOWNLOAD_REQUEST){
             socket->get_file(req.argument, std::string());
         }
@@ -92,6 +94,7 @@ void User::processRequest(Socket* socket)
                 std::cout << f->access_time << "\t ";
                 std::cout << f->creation_time << "\t\n";
             }
+			this->lockShell = 0;
         }
 
         this->requestsToReceive.pop();
@@ -150,7 +153,6 @@ std::list<File> User::compareLocalLocal(std::list<File> systemFiles)
                         // adicionar o userFile->filename em uma lista para remover depois
                         // manda deletar no server
                     }
-
                     uploadFiles.push_back(*fsFile);
                 }
             }
@@ -324,11 +326,6 @@ void User::load()
 }
 
 void User::updateSyncTime(){
-    time_t     now = time(0);
-    struct tm  tstruct;
-    char       timeNow[80];
-    tstruct = *localtime(&now);
-    strftime(timeNow, sizeof(timeNow), "%Y/%m/%d %H:%M:%S", &tstruct);
-
-    this->lastSync = timeNow;
+    this->lastSync = getCurrentTime();
 }
+

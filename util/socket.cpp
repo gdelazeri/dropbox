@@ -37,68 +37,45 @@ Socket::Socket(int side)
 int Socket::login_server(std::string host, int port)
 {
 	if (port == 0){
-		port = rand() % 2000;
+		return 1;
 	}
 
 	this->port = port;
 	struct hostent *server;
+
+	server = gethostbyname(host.c_str());
+	if (server == NULL) {
+		fprintf(stderr,"ERROR: no such host\n");
+		return 1;
+	}
 
 	this->socketAddress.sin_port = htons(this->port);    
 	this->socketAddress.sin_family = AF_INET;   
 	bzero(&(this->socketAddress.sin_zero), 8);
-
-	if (this->side == SOCK_CLIENT)
-	{
-		server = gethostbyname(host.c_str());
-		if (server == NULL) {
-			fprintf(stderr,"ERROR: no such host\n");
-			return 1;
-		}
-		this->socketAddress.sin_addr = *((struct in_addr *)server->h_addr);
-	}
-	else
-	{
-		this->socketAddress.sin_addr.s_addr = INADDR_ANY;
-		if (bind(this->socketFd, (struct sockaddr *) &this->socketAddress, sizeof(struct sockaddr)) < 0) 
-		{
-			fprintf(stderr,"ERROR: bind host\n");
-			return 1;
-		}
-	}
+	this->socketAddress.sin_addr = *((struct in_addr *)server->h_addr);
+	
 	return 0;
 }
 
-struct sockaddr_in Socket::createSocket(std::string host, int port)
+int Socket::createSocket(int port)
 {
-	struct sockaddr_in sockAddr;
-	struct hostent *server;
+	if (port == 0){
+		return 1;
+	}
 
 	this->port = port;
 
-	sockAddr.sin_port = htons(this->port);    
-	sockAddr.sin_family = AF_INET;   
-	bzero(&(sockAddr.sin_zero), 8);
-
-	if (this->side == SOCK_CLIENT)
+	this->socketAddress.sin_port = htons(this->port);    
+	this->socketAddress.sin_family = AF_INET;   
+	bzero(&(this->socketAddress.sin_zero), 8);
+	this->socketAddress.sin_addr.s_addr = INADDR_ANY;
+	if (bind(this->socketFd, (struct sockaddr *) &this->socketAddress, sizeof(struct sockaddr)) < 0) 
 	{
-		server = gethostbyname(host.c_str());
-		if (server == NULL) {
-			fprintf(stderr,"ERROR: no such host\n");
-			return sockAddr;
-		}
-		sockAddr.sin_addr = *((struct in_addr *)server->h_addr);
-	}
-	else
-	{
-		sockAddr.sin_addr.s_addr = INADDR_ANY;
-		if (bind(this->socketFd, (struct sockaddr *) &sockAddr, sizeof(struct sockaddr)) < 0) 
-		{
-			fprintf(stderr,"ERROR: bind host\n");
-			return sockAddr;
-		}
+		fprintf(stderr,"ERROR: bind host\n");
+		return 1;
 	}
 
-	return sockAddr;
+	return 0;
 }
 
 bool Socket::sendAck()
@@ -259,7 +236,7 @@ std::string Socket::receive_file(std::string filename)
 {
 	tDatagram datagram;
 	std::fstream file;
-
+	std::cout << filename << std::endl;
 	file.open(filename.c_str(), std::ios::binary | std::ios::out);
 	datagram = this->receiveDatagram();
 	while(datagram.type == FILE_TYPE && datagram.type != END_DATA)

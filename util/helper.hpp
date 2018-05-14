@@ -12,6 +12,7 @@ std::list<UserServer*> loadUsersServer();
 void printUsers(std::list<UserServer*> users);
 int createNewPort(std::list<int> portsInUse);
 std::pair<int, int> getPorts(char* data);
+std::string getCurrentTime();
 
 #define SERVER_PORT 4000
 #define SERVER_NAME "[server@dropbox] "
@@ -46,6 +47,8 @@ std::pair<int, int> getPorts(char* data);
 #define LIST_SERVER_REQUEST 4
 #define DOWNLOAD_SYNC_REQUEST 5
 #define UPLOAD_SYNC_REQUEST 6
+#define DELETE_REQUEST 7
+#define RENAME_REQUEST 8
 
 typedef struct tDatagram
 {

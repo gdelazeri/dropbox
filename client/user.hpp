@@ -12,6 +12,8 @@ class User
 	public:
         std::string userid;
         int logged_in;
+        int lockShell;
+        int lockRequests;
         std::string lastSync;
         std::queue<Request> requestsToSend;
         std::queue<Request> requestsToReceive;

@@ -18,12 +18,14 @@
 #include <string.h>
 #include <stdio.h>
 #include <mutex>
+#include <stdlib.h>
+#include <errno.h>
+#include <sys/inotify.h>
 
 #include "user.hpp"
 
-// #include <csignal>
-// #include <condition_variable>
-// #include <mutex>
+#define EVENT_SIZE  ( sizeof (struct inotify_event) )
+#define BUF_LEN     ( 1024 * ( EVENT_SIZE + 16 ) )
 
 User* user = new User();
 
@@ -36,10 +38,67 @@ void say(std::string message)
 		std::cout << "[" << user->userid << "@dropbox] "  << message << "\n";
 }
 
+// void syncLocalToServer()
+// {
+// 	int length, i = 0;
+// 	int fd, wd;
+// 	char buffer[BUF_LEN];
+// 	std::string oldFilename = std::string();
+
+// 	fd = inotify_init();
+
+// 	if ( fd < 0 ) perror("inotify_init");
+
+// 	wd = inotify_add_watch( fd, user->getFolderPath().c_str(), IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO );
+
+// 	while (user->logged_in) {
+// 		length = read( fd, buffer, BUF_LEN );  
+// 		if ( length < 0 ) perror( "read" );
+
+// 		while ( i < length ) {
+// 			struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];
+// 			if ( event->len ) {
+// 				if ( event->mask & IN_CREATE ) {
+// 					user->addRequestToSend(Request(UPLOAD_SYNC_REQUEST, event->name, getCurrentTime()));
+// 					printf( "The file %s was created.\n", event->name );
+// 				}
+// 				else if ( event->mask & IN_DELETE ) {
+// 					user->addRequestToSend(Request(DELETE_REQUEST, event->name));
+// 					printf( "The file %s was deleted.\n", event->name );
+// 				}
+// 				else if ( event->mask & IN_MODIFY ) {
+// 					user->addRequestToSend(Request(UPLOAD_SYNC_REQUEST, event->name, getCurrentTime()));
+// 					printf( "The file %s was modified.\n", event->name );
+// 				}
+// 				else if ( event->mask & IN_MOVED_FROM ) {
+// 					oldFilename = event->name;
+// 					printf( "The file %s was moved from.\n", event->name );
+// 				}
+// 				else if ( event->mask & IN_MOVED_TO ) {
+// 					if (!oldFilename.empty())
+// 					{
+// 						user->addRequestToSend(Request(RENAME_REQUEST, oldFilename, event->name));
+// 						oldFilename = std::string();
+// 					}
+// 					printf( "The file %s was moved to.\n", event->name );
+// 				}
+// 			}
+// 			i += EVENT_SIZE + event->len;
+// 		}
+// 	}
+
+// 	(void) inotify_rm_watch( fd, wd );
+// 	(void) close( fd );
+
+// 	exit(0);
+// }
+
 void syncThread(Socket* receiverSocket)
 {
 	while(user->logged_in)
 	{
+		// MUTEX: Usar mutex para não deixar a thread que verifica renomeações rodar enquanto esta roda
+
 		std::list<File> localFiles, serverFiles, upload, download;
 
 		upload = std::list<File>();
@@ -47,32 +106,33 @@ void syncThread(Socket* receiverSocket)
 		localFiles = user->compareLocalLocal(user->getFilesFromFS());
 		serverFiles = user->compareLocalServer(receiverSocket);
 
+		// Files to upload
 		for (auto upFile = localFiles.begin(); upFile != localFiles.end(); upFile++) {
-			bool intersec = false;
+			bool found = false;
 			for (auto downFile = serverFiles.begin(); downFile != serverFiles.end(); downFile++) {
 				if (upFile->filename == downFile->filename)
 				{
-					intersec = true;
+					found = true;
 					if (upFile->last_modified > downFile->last_modified)
 						upload.push_back(*upFile);
 				}
 			}
-			if (!intersec)
+			if (!found)
 				upload.push_back(*upFile);
 		}
 			
-
+		// Files to download
 		for (auto downFile = serverFiles.begin(); downFile != serverFiles.end(); downFile++) {
-			bool intersec = false;
+			bool found = false;
 			for (auto upFile = localFiles.begin(); upFile != localFiles.end(); upFile++) {
 				if (upFile->filename == downFile->filename)
 				{
-					intersec = true;
+					found = true;
 					if (upFile->last_modified <= downFile->last_modified)
 						download.push_back(*downFile);
 				}
 			}
-			if (!intersec)
+			if (!found)
 				download.push_back(*downFile);
 		}
 
@@ -115,56 +175,60 @@ void shellThread()
 
 	while(user->logged_in)
 	{
-		std::string line;
-		std::string command;
-		std::string argument;
-		std::size_t pos;
-
-		std::cout << ">> ";
-		std::getline(std::cin, line);
-
-		if((pos = line.find(" ")) != std::string::npos)
+		if (user->lockShell == 0)
 		{
-			command = line.substr(0, pos);
-			line = line.substr(pos+1, std::string::npos);
-			if(line != "")
-				argument = line;
+			std::string line;
+			std::string command;
+			std::string argument;
+			std::size_t pos;
+
+			std::cout << ">> ";
+			std::getline(std::cin, line);
+
+			if((pos = line.find(" ")) != std::string::npos)
+			{
+				command = line.substr(0, pos);
+				line = line.substr(pos+1, std::string::npos);
+				if(line != "")
+					argument = line;
+				else
+					argument = "";
+				line = "";
+			}
 			else
-				argument = "";
-			line = "";
-		}
-		else
-		{
-			command = line;
-			line = "";
-		}
+			{
+				command = line;
+				line = "";
+			}
 
-		if(command == "upload"){
-			user->addRequestToSend(Request(UPLOAD_REQUEST, argument));
-		}
-		if(command == "download"){
-			user->addRequestToReceive(Request(DOWNLOAD_REQUEST, argument));
-		}
-		if(command == "list_server"){
-			user->addRequestToReceive(Request(LIST_SERVER_REQUEST, argument));
-		}
-		if(command == "list_client"){
-			std::list<File> localFiles;
-            localFiles = user->files;
+			if(command == "upload"){
+				user->addRequestToSend(Request(UPLOAD_REQUEST, argument));
+			}
+			if(command == "download"){
+				user->addRequestToReceive(Request(DOWNLOAD_REQUEST, argument));
+			}
+			if(command == "list_server"){
+				user->lockShell = 1;
+				user->addRequestToReceive(Request(LIST_SERVER_REQUEST, argument));
+			}
+			if(command == "list_client"){
+				std::list<File> localFiles;
+				localFiles = user->files;
 
-            std::cout << "filename\tsize\t\tmodified\t\taccess\t\t\tcreation\n";
-            for (std::list<File>::iterator f = localFiles.begin(); f != localFiles.end(); ++f) {
-                std::cout << f->filename << "\t ";
-                std::cout << f->size << "\t ";
-                std::cout << f->last_modified << "\t ";
-                std::cout << f->access_time << "\t ";
-                std::cout << f->creation_time << "\t\n";
-            }
-		}
-		if(command == "exit"){
-			user->addRequestToSend(Request(EXIT_REQUEST, argument));
-			user->addRequestToReceive(Request(EXIT_REQUEST, argument));
-			user->logout();
+				std::cout << "filename\tsize\t\tmodified\t\taccess\t\t\tcreation\n";
+				for (std::list<File>::iterator f = localFiles.begin(); f != localFiles.end(); ++f) {
+					std::cout << f->filename << "\t ";
+					std::cout << f->size << "\t ";
+					std::cout << f->last_modified << "\t ";
+					std::cout << f->access_time << "\t ";
+					std::cout << f->creation_time << "\t\n";
+				}
+			}
+			if(command == "exit"){
+				user->addRequestToSend(Request(EXIT_REQUEST, argument));
+				user->addRequestToReceive(Request(EXIT_REQUEST, argument));
+				user->logout();
+			}
 		}
 	}
 	say("FIM");

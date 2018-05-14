@@ -19,7 +19,7 @@ class Socket
 
 		Socket(int side);
 
-		struct sockaddr_in createSocket(std::string host, int port);
+		int createSocket(int port);
 		int login_server(std::string host, int port);
 
 		bool sendDatagram(tDatagram datagram);
