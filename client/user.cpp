@@ -13,16 +13,7 @@ void User::login(std::string userid)
 
 void User::logout()
 {
-    // std::cout << "this->requestsToSend: " << this->requestsToSend.size() << std::endl;
-    // std::cout << "this->requestsToReceive: " << this->requestsToReceive.size() << std::endl;
-    // while (this->requestsToSend.size() > 0 || this->requestsToReceive.size() > 0){
-    //     // std::cout << this->requestsToReceive.size() << std::endl;
-    //     continue;
-    // }
-    // std::cout << "\nthis->requestsToSend: " << this->requestsToSend.size() << std::endl;
-    // std::cout << "this->requestsToReceive: " << this->requestsToReceive.size() << std::endl;
-
-    // this->logged_in = 0;
+    this->logged_in = 0;
 }
 
 bool User::createDir()
@@ -35,36 +26,16 @@ bool User::createDir()
 
 void User::addRequestToSend(Request newRequest)
 {
-    if (newRequest.type == EXIT_REQUEST)
-    {
-        while (this->requestsToSend.size() > 0 || this->requestsToReceive.size() > 0)
-        {  };
-        this->requestsToSend.push(newRequest);
-        this->logged_in = 0;
-    }
-    else {
-        this->requestsToSend.push(newRequest);
-    }
+    this->requestsToSend.push(newRequest);
 }
 
 void User::addRequestToReceive(Request newRequest)
 {
-    if (newRequest.type == EXIT_REQUEST)
-    {
-        while (this->requestsToSend.size() > 0 || this->requestsToReceive.size() > 0)
-        {  };
-        this->requestsToReceive.push(newRequest);
-        this->logged_in = 0;
-    }
-    else
-    {
-        this->requestsToReceive.push(newRequest);
-    }
+    this->requestsToReceive.push(newRequest);
 }
 
 void User::executeRequest(Socket* socket)
 {
-    // std::cout << "executeRequest" << std::endl;
     if (!this->requestsToSend.empty())
     {
         Request req = this->requestsToSend.front();
@@ -87,7 +58,6 @@ void User::executeRequest(Socket* socket)
 
 void User::processRequest(Socket* socket)
 {
-    // std::cout << "processRequest" << std::endl;
     if (!this->requestsToReceive.empty())
     {
         Request req = this->requestsToReceive.front();
