@@ -1,7 +1,7 @@
 #ifndef __DEVICE_HPP__
 #define __DEVICE_HPP__
 
-#include "userserver.hpp"
+#include "userServer.hpp"
 
 class Device
 {

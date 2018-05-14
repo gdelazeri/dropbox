@@ -13,9 +13,9 @@ std::string UserServer::getFolderPath()
     return "server/sync_dir_" + this->userid;
 }
 
-bool UserServer::createDir(std::string side)
+bool UserServer::createDir()
 {
-    std::string dir = side + "/" + this->getFolderName();
+    std::string dir = this->getFolderPath();
     if((mkdir(dir.c_str(), 0777)) == 0)
         return true;
     return false;
@@ -46,4 +46,6 @@ std::string UserServer::getFileModificationTime(std::string pathname)
             return it->last_modified;
 		}
 	}
+
+    return std::string();
 }

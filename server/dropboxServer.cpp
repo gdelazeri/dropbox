@@ -101,13 +101,13 @@ UserServer* searchUser(std::string userid)
 	for (std::list<UserServer*>::iterator it = users.begin(); it != users.end(); ++it){
     	if ((*it)->userid == userid)
 		{
-			(*it)->createDir("server");
+			(*it)->createDir();
 			return (*it);
 		}
 	}
 	UserServer* newUserServer = new UserServer();
 	newUserServer->userid = userid;
-	newUserServer->createDir("server");
+	newUserServer->createDir();
 	users.push_back(newUserServer);
 
 	return newUserServer;

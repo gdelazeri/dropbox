@@ -1,8 +1,0 @@
-#user
-dela
-#files
-server/sync_dir_dela/big1.txt
-2018/05/12 18:39:20
-server/sync_dir_dela/uploadDeNovo.txt
-2018/05/14 10:09:58
-#end
