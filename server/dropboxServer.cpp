@@ -77,8 +77,9 @@ void receiveThread(Socket* socket, Device* device)
 			}
 
 			case DELETE_TYPE: {
-				// deletar arquivo da pasta do usuário
-				// remover o arquivo da lista user->files
+				std::string pathname = device->user->getFolderPath() + "/" + std::string(datagram.data);
+				device->user->removeFile(pathname);
+				saveUsersServer(users);
 				break;
 			}
 

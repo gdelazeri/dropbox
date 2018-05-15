@@ -9,7 +9,7 @@
 
 void saveUsersServer(std::list<UserServer*> users);
 std::list<UserServer*> loadUsersServer();
-void printUsers(std::list<UserServer*> users);
+void printUsersServer(std::list<UserServer*> users);
 int createNewPort(std::list<int> portsInUse);
 std::pair<int, int> getPorts(char* data);
 std::string getCurrentTime();

@@ -236,7 +236,6 @@ std::string Socket::receive_file(std::string filename)
 {
 	tDatagram datagram;
 	std::fstream file;
-	std::cout << filename << std::endl;
 	file.open(filename.c_str(), std::ios::binary | std::ios::out);
 	datagram = this->receiveDatagram();
 	while(datagram.type == FILE_TYPE && datagram.type != END_DATA)
@@ -346,5 +345,14 @@ void Socket::send_list_server(UserServer* user)
 
 	tDatagram datagram;
 	datagram.type = END_DATA;
+	this->sendDatagram(datagram);
+}
+
+void Socket::deleteFile(std::string filename)
+{
+	tDatagram datagram;
+
+	datagram.type = DELETE_TYPE;
+	strcpy(datagram.data, filename.c_str());
 	this->sendDatagram(datagram);
 }

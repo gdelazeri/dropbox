@@ -31,6 +31,7 @@ class Socket
 		bool close_session();
 		std::list<File> list_server();
 		void send_list_server(UserServer* user);
+		void deleteFile(std::string filename);
 
 		bool sendAck();
 		bool waitAck();

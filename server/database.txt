@@ -1,16 +1,3 @@
 #user
-dela
-#files
-server/sync_dir_dela/big1.txt
-2018/05/12 18:39:20
-#end
-#user
 delazeri
-#files
-server/sync_dir_delazeri/big1.txt
-2018/05/12 18:39:20
-server/sync_dir_delazeri/big3.txt
-2018/05/14 21:07:53
-server/sync_dir_delazeri/test.txt
-2018/05/08 19:32:03
 #end

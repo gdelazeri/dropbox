@@ -49,3 +49,17 @@ std::string UserServer::getFileModificationTime(std::string pathname)
 
     return std::string();
 }
+
+void UserServer::removeFile(std::string pathname)
+{
+    for (std::list<File>::iterator it = this->files.begin(); it != this->files.end(); ++it){
+    	if (it->pathname == pathname) {
+            this->files.erase(it);
+            break;
+		}
+	}
+
+    if( remove(pathname.c_str()) != 0 )
+        perror( "Error deleting file" );
+}
+

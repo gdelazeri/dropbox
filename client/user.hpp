@@ -41,6 +41,7 @@ class User
         std::list<File> filesToDelete(std::list<File> systemFiles);
         void updateFiles(std::list<File> uploadFiles, std::list<File> downloadFiles);
         void addFile(File newFile);
+        void removeFile(std::string filename);
 
         void save();
         void load();

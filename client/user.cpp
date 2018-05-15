@@ -53,6 +53,10 @@ void User::executeRequest(Socket* socket)
             this->addFile(uploadedFile);
             this->updateSyncTime();
         }
+         if (req.type == DELETE_REQUEST){
+            socket->deleteFile(req.argument);
+            this->removeFile(req.argument);
+        }
         if (req.type == EXIT_REQUEST){
             socket->close_session();
         }
@@ -74,6 +78,7 @@ void User::processRequest(Socket* socket)
             File downloadedFile;
             downloadedFile.filename = req.argument;
             downloadedFile.last_modified = socket->get_file(req.argument, this->getFolderPath() + "/");
+            std::cout << "download sync:" << req.argument << std::endl;
             this->addFile(downloadedFile);
             this->updateSyncTime();
         }
@@ -141,9 +146,6 @@ std::list<File> User::filesToUpload(std::list<File> systemFiles)
 
     for (std::list<File>::iterator fsFile = systemFiles.begin(); fsFile != systemFiles.end(); ++fsFile)
     {
-        std::cout << "fs:" << std::endl;
-        std::cout << fsFile->filename << std::endl;
-        std::cout << fsFile->inode << std::endl;
         bool found = false;
         for (std::list<File>::iterator userFile = this->files.begin(); userFile != this->files.end(); ++userFile)
         {
@@ -151,17 +153,11 @@ std::list<File> User::filesToUpload(std::list<File> systemFiles)
             {
                 found = true;
                 if (fsFile->last_modified > userFile->last_modified && fsFile->last_modified > this->lastSync) {
-                    if (userFile->filename != fsFile->filename) {
-                        // adicionar o userFile->filename em uma lista para remover depois
-                        // manda deletar no server
-                    }
                     uploadFiles.push_back(*fsFile);
                 }
             }
         }
         
-        // if () remove itens da lista de arquivos do usuário this->files
-
         if (!found) {
             uploadFiles.push_back(*fsFile);
         }
@@ -254,12 +250,12 @@ void User::addFile(File newFile)
         {
             found = true;
             userFile->pathname = this->getFolderPath() + "/" + userFile->filename;
-            userFile->inode = userFile->getInode(this->getFolderPath() + "/");
             userFile->size = userFile->getSize();
             userFile->last_modified = newFile.last_modified;
             userFile->access_time = newFile.access_time;
             userFile->creation_time = newFile.creation_time;
         }
+        userFile->inode = userFile->getInode(this->getFolderPath() + "/");
     }
 
     if (!found) {
@@ -348,4 +344,13 @@ void User::load()
 
 void User::updateSyncTime(){
     this->lastSync = getCurrentTime();
+}
+
+void User::removeFile(std::string filename){
+    for (std::list<File>::iterator it = this->files.begin(); it != this->files.end(); ++it){
+    	if (it->filename == filename) {
+            this->files.erase(it);
+            break;
+		}
+	}
 }
