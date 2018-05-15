@@ -9,7 +9,6 @@ void User::login(std::string userid)
     this->userid = userid;
     this->logged_in = 1;
     this->lockShell = 0;
-    // this->isSync = 0;
     this->createDir();
 }
 
@@ -136,12 +135,15 @@ std::list<File> User::getFilesFromFS()
     return systemFiles;
 }
 
-std::list<File> User::compareLocalLocal(std::list<File> systemFiles)
+std::list<File> User::filesToUpload(std::list<File> systemFiles)
 {
     std::list<File> uploadFiles;
 
     for (std::list<File>::iterator fsFile = systemFiles.begin(); fsFile != systemFiles.end(); ++fsFile)
     {
+        std::cout << "fs:" << std::endl;
+        std::cout << fsFile->filename << std::endl;
+        std::cout << fsFile->inode << std::endl;
         bool found = false;
         for (std::list<File>::iterator userFile = this->files.begin(); userFile != this->files.end(); ++userFile)
         {
@@ -168,7 +170,7 @@ std::list<File> User::compareLocalLocal(std::list<File> systemFiles)
     return uploadFiles;
 }
 
-std::list<File> User::compareLocalServer(Socket* receiverSocket)
+std::list<File> User::filesToDownload(Socket* receiverSocket)
 {
     std::list<File> serverFiles, downloadFiles;
     serverFiles = receiverSocket->list_server();
@@ -192,6 +194,26 @@ std::list<File> User::compareLocalServer(Socket* receiverSocket)
     }
 
     return downloadFiles;
+}
+
+std::list<File> User::filesToDelete(std::list<File> systemFiles)
+{
+    std::list<File> deleteFiles;
+
+    for (std::list<File>::iterator userFile = this->files.begin(); userFile != this->files.end(); ++userFile)
+    {
+        bool found = false;
+        for (std::list<File>::iterator fsFile = systemFiles.begin(); fsFile != systemFiles.end(); ++fsFile)
+            if (fsFile->filename == userFile->filename) {
+                found = true;
+                break;
+            }
+
+        if (!found)
+            deleteFiles.push_back(*userFile);
+    }
+
+    return deleteFiles;
 }
 
 void User::updateFiles(std::list<File> uploadFiles, std::list<File> downloadFiles)
@@ -321,11 +343,9 @@ void User::load()
 
     }
 
-    // std::cout << "list: " << list.size() << std::endl;
     file.close();
 }
 
 void User::updateSyncTime(){
     this->lastSync = getCurrentTime();
 }
-

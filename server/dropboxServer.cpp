@@ -32,15 +32,13 @@ void say(std::string message){
 void sendThread(Socket* socket, Device* device)
 {
 	tDatagram datagram;
-	say("Send thread");
-	
 	while(device->connected)
 	{
 		datagram = socket->receiveDatagram();
 		switch (datagram.type)
 		{
 			case GET_FILE_TYPE: {
-				std::string pathname = "server/" + device->user->getFolderName() + "/" + std::string(datagram.data);
+				std::string pathname = device->user->getFolderPath() + "/" + std::string(datagram.data);
 				std::string modificationTime = device->user->getFileModificationTime(pathname);
 				socket->send_file(pathname, modificationTime);
 				break;
@@ -64,7 +62,6 @@ void sendThread(Socket* socket, Device* device)
 void receiveThread(Socket* socket, Device* device)
 {
 	tDatagram datagram;
-	say("Receive thread");
 	
 	while(device->connected)
 	{
@@ -79,10 +76,11 @@ void receiveThread(Socket* socket, Device* device)
 				break;
 			}
 
-			case DELETE_TYPE:
+			case DELETE_TYPE: {
 				// deletar arquivo da pasta do usuário
 				// remover o arquivo da lista user->files
 				break;
+			}
 
 			case CLOSE:
 				device->disconnect();

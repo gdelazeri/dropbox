@@ -167,6 +167,7 @@ bool Socket::send_file(std::string pathname, std::string modificationTime)
 	fileHelper.pathname = pathname;
 
 	if (!fileHelper.exists()){
+		std::cout << "\t#Este arquivo não existe!";
 		return false;
 	}
 
@@ -209,7 +210,6 @@ bool Socket::send_file(std::string pathname, std::string modificationTime)
 	this->sendDatagram(datagram);
 
 	file.close();
-	// delete fileHelper;
 
 	return true;
 }

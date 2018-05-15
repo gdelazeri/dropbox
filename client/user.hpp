@@ -3,9 +3,13 @@
 
 #include <string>
 #include <queue>
+#include <mutex>
 #include "request.hpp"
 #include "socket.hpp"
 #include "file.hpp"
+
+#define EVENT_SIZE  ( sizeof (struct inotify_event) )
+#define BUF_LEN     ( 1024 * ( EVENT_SIZE + 16 ) )
 
 class User
 {
@@ -32,8 +36,9 @@ class User
 
         // Files
         std::list<File> getFilesFromFS();
-        std::list<File> compareLocalLocal(std::list<File> systemFiles);
-        std::list<File> compareLocalServer(Socket* receiverSocket);
+        std::list<File> filesToUpload(std::list<File> systemFiles);
+        std::list<File> filesToDownload(Socket* receiverSocket);
+        std::list<File> filesToDelete(std::list<File> systemFiles);
         void updateFiles(std::list<File> uploadFiles, std::list<File> downloadFiles);
         void addFile(File newFile);
 
