@@ -3,6 +3,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+UserServer::UserServer(void){
+    std::cout << this->deleted.size();
+}
+
+
 std::string UserServer::getFolderName()
 {
     return "sync_dir_" + this->userid;

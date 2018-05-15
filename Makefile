@@ -3,7 +3,7 @@ INCLUDE=-I./util
 FLAGS=-O2 -Wall -pthread -std=gnu++11
 CFLAGS=$(FLAGS) $(INCLUDE)
 
-UTIL=util/socket.o util/userServer.o util/request.o util/file.o util/helper.o util/device.o
+UTIL=util/socket.o util/userServer.o util/request.o util/file.o util/dropboxUtil.o util/device.o
 
 .PHONY: all clean
 

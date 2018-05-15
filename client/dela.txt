@@ -1,6 +1,8 @@
 #user
 dela
+2018/05/15 01:35:56
 #files
-server/sync_dir_dela/big4.txt
+big4.txt
 2018/05/15 01:34:22
+88
 #end

@@ -11,7 +11,9 @@ class UserServer
 		int	devices;
         std::string userid;
         std::list<File> files;
+        std::list<std::pair<std::string, int>> deleted;
 
+		UserServer();
 		void login();
 		void logout();
 		std::string getFolderName();

@@ -1,14 +1,7 @@
-// #include "database.hpp"
-// #include "foldermanager.hpp"
-// #include "servercomm.hpp"
-// #include "serveruser.hpp"
-// #include "device.hpp"
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -17,7 +10,6 @@
 #include <list>
 #include <algorithm>
 #include <string.h>
-
 #include "socket.hpp"
 #include "device.hpp"
 
@@ -46,6 +38,10 @@ void sendThread(Socket* socket, Device* device)
 
 			case LIST_SERVER:
 				socket->send_list_server(device->user);
+				break;
+
+			case LIST_DELETED:
+				socket->sendListDeleted(device->user);
 				break;
 
 			case CLOSE:
@@ -79,6 +75,7 @@ void receiveThread(Socket* socket, Device* device)
 			case DELETE_TYPE: {
 				std::string pathname = device->user->getFolderPath() + "/" + std::string(datagram.data);
 				device->user->removeFile(pathname);
+				device->user->deleted.push_back(std::make_pair(std::string(datagram.data), 2));
 				saveUsersServer(users);
 				break;
 			}

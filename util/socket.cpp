@@ -1,19 +1,4 @@
 #include "socket.hpp"
-#include "file.hpp"
-
-#include <stdio.h>
-#include <cstdlib>
-#include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <string>
-#include <iostream>
-#include <fstream>
-#include <cstddef>
 
 struct sockaddr_in from;
 
@@ -129,13 +114,13 @@ bool Socket::sendDatagram(tDatagram datagram)
 	}
 	if (n < 0)
 	{
-		std::cout << "ERROR sendto";
+		std::cout << "ERROR: sendto";
 		return false;
 	}
 
 	if (!this->waitAck())
 	{
-		std::cout << "ERROR ack miss";
+		std::cout << "ERROR: ack miss";
 		return false;
 	}
 	
@@ -151,7 +136,7 @@ tDatagram Socket::receiveDatagram()
 	int n = recvfrom(this->socketFd, buffer, BUFFER_SIZE, 0, (struct sockaddr *) &from, &length);
 	if (n < 0)
 	{
-		std::cout << "ERROR recvfrom";
+		std::cout << "ERROR: recvfrom";
 		datagram.type = ERROR;
 		return datagram;
 	}
@@ -167,7 +152,7 @@ bool Socket::send_file(std::string pathname, std::string modificationTime)
 	fileHelper.pathname = pathname;
 
 	if (!fileHelper.exists()){
-		std::cout << "\t#Este arquivo não existe!";
+		std::cout << "ERROR: This file not exists!";
 		return false;
 	}
 
@@ -278,8 +263,6 @@ std::list<File> Socket::list_server()
 	datagram = this->receiveDatagram();
 	while(datagram.type == FILE_INFO && datagram.type != END_DATA)
 	{
-		//std::cout << "Datagram: " << datagram.data << "\n";
-
 		File newFile;
 
 		int pos = 0, posEnd;
@@ -287,27 +270,22 @@ std::list<File> Socket::list_server()
 		
 		posEnd = fileInfo.find("#");
 		newFile.filename = fileInfo.substr(pos, posEnd-pos);
-		//std::cout << fileInfo.substr(pos, posEnd-pos) << "\t ";
 
 		pos = posEnd+1;
 		posEnd = fileInfo.find("#", posEnd+1);
 		newFile.size = atoi(fileInfo.substr(pos, posEnd-pos).c_str());
-		// std::cout << fileInfo.substr(pos, posEnd-pos) << "\t";
 
 		pos = posEnd+1;
 		posEnd = fileInfo.find("#", posEnd+1);
 		newFile.last_modified = fileInfo.substr(pos, posEnd-pos);
-		// std::cout << fileInfo.substr(pos, posEnd-pos) << "\t";
 
 		pos = posEnd+1;
 		posEnd = fileInfo.find("#", posEnd+1);
 		newFile.access_time = fileInfo.substr(pos, posEnd-pos);
-		// // std::cout << fileInfo.substr(pos, posEnd-pos) << "\t";
 
 		pos = posEnd+1;
 		posEnd = fileInfo.find("#", posEnd+1);
 		newFile.creation_time = fileInfo.substr(pos, posEnd-pos);
-		// std::cout << fileInfo.substr(pos, posEnd-pos) << "\t\n";
 
 		filesList.push_back(newFile);
 
@@ -347,6 +325,48 @@ void Socket::send_list_server(UserServer* user)
 	datagram.type = END_DATA;
 	this->sendDatagram(datagram);
 }
+
+std::list<std::string> Socket::listDeleted()
+{
+	tDatagram datagram;
+	std::list<std::string> deletedFiles = std::list<std::string>();
+	
+	datagram.type = LIST_DELETED;
+	this->sendDatagram(datagram);
+
+	datagram = this->receiveDatagram();
+	while(datagram.type == DELETED_FILE && datagram.type != END_DATA)
+	{
+		deletedFiles.push_back(std::string(datagram.data));
+		datagram = this->receiveDatagram();
+	}
+
+	return deletedFiles;
+}
+
+void Socket::sendListDeleted(UserServer* user)
+{
+	if (user->deleted.size() > 0 && user->deleted.size() < 1000) {
+		std::list<std::pair<std::string, int>>::iterator f = user->deleted.begin();
+		while (f != user->deleted.end())
+		{
+			tDatagram datagram;
+			datagram.type = DELETED_FILE;
+			strcpy(datagram.data, f->first.c_str());
+			this->sendDatagram(datagram);
+			f->second = f->second - 1;
+			if (f->second == 0)
+				user->deleted.erase(f++);
+			else
+				f++;
+		}
+	}
+
+	tDatagram datagram;
+	datagram.type = END_DATA;
+	this->sendDatagram(datagram);
+}
+
 
 void Socket::deleteFile(std::string filename)
 {

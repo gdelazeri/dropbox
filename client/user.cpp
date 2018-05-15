@@ -48,7 +48,6 @@ void User::executeRequest(Socket* socket)
             File uploadedFile;
             uploadedFile.filename = req.argument;
             uploadedFile.last_modified = req.argument2;
-            std::cout << "upload sync:" << req.argument << std::endl;
             socket->send_file(this->getFolderPath() + "/" + req.argument, req.argument2);
             this->addFile(uploadedFile);
             this->updateSyncTime();
@@ -78,7 +77,6 @@ void User::processRequest(Socket* socket)
             File downloadedFile;
             downloadedFile.filename = req.argument;
             downloadedFile.last_modified = socket->get_file(req.argument, this->getFolderPath() + "/");
-            std::cout << "download sync:" << req.argument << std::endl;
             this->addFile(downloadedFile);
             this->updateSyncTime();
         }
@@ -225,8 +223,6 @@ void User::updateFiles(std::list<File> uploadFiles, std::list<File> downloadFile
             if (newFile->filename == userFile->filename)
             {
                 found = true;
-                // userFile->pathname = this->getFolderPath() + "/" + userFile->filename;
-                // userFile->size = newFile->size;
                 userFile->last_modified = newFile->last_modified;
             }
         }
@@ -352,5 +348,20 @@ void User::removeFile(std::string filename){
             this->files.erase(it);
             break;
 		}
+	}
+}
+
+void User::deleteFilesFromServer(std::list<std::string> deletedFiles)
+{
+    for (std::list<std::string>::iterator it = deletedFiles.begin(); it != deletedFiles.end(); ++it) {
+        std::cout << *it << std::endl;
+        this->removeFile(*it);
+        
+        File fileToRemove;
+        fileToRemove.pathname = this->getFolderPath() + "/" + *it;
+        if (fileToRemove.exists()) {
+            if( remove(fileToRemove.pathname.c_str()) != 0 )
+                perror( "Error deleting file" );
+        }
 	}
 }

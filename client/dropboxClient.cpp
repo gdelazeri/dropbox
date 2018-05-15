@@ -1,9 +1,3 @@
-// #include "foldermanager.hpp"
-// #include "clientcomm.hpp"
-// #include "clientuser.hpp"
-// #include "device.hpp"
-// #include "file.hpp"
-
 #include <sys/types.h>
 #include <iostream>
 #include <iterator>
@@ -11,7 +5,6 @@
 #include <chrono>
 #include <map>
 #include <string.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -21,7 +14,6 @@
 
 User* user = new User();
 
-/* Utils */
 void say(std::string message) 
 {
 	if (user->userid.empty())
@@ -30,18 +22,21 @@ void say(std::string message)
 		std::cout << "[" << user->userid << "@dropbox] "  << message << "\n";
 }
 
+/* Thread to synchronize files between Client and Server  */
 void syncThread(Socket* receiverSocket)
 {
 	while(user->logged_in)
 	{
-		std::list<File> localFiles, serverFiles, upload, download, deleteFiles;
-		upload = std::list<File>();
-		download = std::list<File>();
+		std::list<File> localFiles, serverFiles, systemFiles;
+		std::list<File> uploads, downloads, deleted;
+		uploads = std::list<File>();
+		downloads = std::list<File>();
 
-		std::list<File> systemFiles = user->getFilesFromFS();
+	    user->deleteFilesFromServer(receiverSocket->listDeleted());
+		systemFiles = user->getFilesFromFS();
 		localFiles = user->filesToUpload(systemFiles);
 		serverFiles = user->filesToDownload(receiverSocket);
-		deleteFiles = user->filesToDelete(systemFiles);
+		deleted = user->filesToDelete(systemFiles);
 
 		// Merge to upload
 		for (auto upFile = localFiles.begin(); upFile != localFiles.end(); upFile++) {
@@ -50,11 +45,11 @@ void syncThread(Socket* receiverSocket)
 				if (upFile->filename == downFile->filename) {
 					found = true;
 					if (upFile->last_modified > downFile->last_modified)
-						upload.push_back(*upFile);
+						uploads.push_back(*upFile);
 				}
 			}
 			if (!found)
-				upload.push_back(*upFile);
+				uploads.push_back(*upFile);
 		}
 			
 		// Merge to download
@@ -64,20 +59,20 @@ void syncThread(Socket* receiverSocket)
 				if (upFile->filename == downFile->filename) {
 					found = true;
 					if (upFile->last_modified <= downFile->last_modified)
-						download.push_back(*downFile);
+						downloads.push_back(*downFile);
 				}
 			}
 			if (!found)
-				download.push_back(*downFile);
+				downloads.push_back(*downFile);
 		}
 
-		for (auto it = upload.begin(); it != upload.end(); ++it)
+		for (auto it = uploads.begin(); it != uploads.end(); ++it)
 			user->addRequestToSend(Request(UPLOAD_SYNC_REQUEST, it->filename, it->last_modified));
 
-		for (auto it = download.begin(); it != download.end(); ++it)
+		for (auto it = downloads.begin(); it != downloads.end(); ++it)
 			user->addRequestToReceive(Request(DOWNLOAD_SYNC_REQUEST, it->filename));
 		
-		for (auto it = deleteFiles.begin(); it != deleteFiles.end(); ++it)
+		for (auto it = deleted.begin(); it != deleted.end(); ++it)
 			user->addRequestToSend(Request(DELETE_REQUEST, it->filename));
 
 		user->save();
@@ -141,14 +136,14 @@ void shellThread()
 			if(command == "upload"){
 				user->addRequestToSend(Request(UPLOAD_REQUEST, argument));
 			}
-			if(command == "download"){
+			else if(command == "download"){
 				user->addRequestToReceive(Request(DOWNLOAD_REQUEST, argument));
 			}
-			if(command == "list_server"){
+			else if(command == "list_server"){
 				user->lockShell = 1;
 				user->addRequestToReceive(Request(LIST_SERVER_REQUEST, argument));
 			}
-			if(command == "list_client"){
+			else if(command == "list_client"){
 				std::list<File> localFiles;
 				localFiles = user->files;
 
@@ -161,7 +156,10 @@ void shellThread()
 					std::cout << f->creation_time << "\t\n";
 				}
 			}
-			if(command == "exit"){
+			else if(command == "get_sync_dir"){
+				
+			}
+			else if(command == "exit"){
 				user->addRequestToSend(Request(EXIT_REQUEST, argument));
 				user->addRequestToReceive(Request(EXIT_REQUEST, argument));
 				user->logout();

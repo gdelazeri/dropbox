@@ -42,6 +42,7 @@ class User
         void updateFiles(std::list<File> uploadFiles, std::list<File> downloadFiles);
         void addFile(File newFile);
         void removeFile(std::string filename);
+        void deleteFilesFromServer(std::list<std::string> deletedFiles);
 
         void save();
         void load();
