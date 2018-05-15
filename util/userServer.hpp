@@ -23,8 +23,8 @@ class UserServer
 		std::string getFolderPath();
 
 		// Files
-		void addFile(std::string pathname, std::string modificationTime);
-		std::string getFileModificationTime(std::string pathname);
+		void addFile(std::string pathname, std::string modificationTime, std::string accessTime, std::string creationTime);
+		std::string getFileTime(std::string pathname, char type);
 		void removeFile(std::string pathname);
 };
 #endif

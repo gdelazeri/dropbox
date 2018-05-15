@@ -31,8 +31,10 @@ void sendThread(Socket* socket, Device* device)
 		{
 			case GET_FILE_TYPE: {
 				std::string pathname = device->user->getFolderPath() + "/" + std::string(datagram.data);
-				std::string modificationTime = device->user->getFileModificationTime(pathname);
-				socket->send_file(pathname, modificationTime);
+				std::string modificationTime = device->user->getFileTime(pathname, 'M');
+				std::string accessTime = device->user->getFileTime(pathname, 'A');
+				std::string creationTime = device->user->getFileTime(pathname, 'C');
+				socket->send_file(pathname, modificationTime, accessTime, creationTime);
 				break;
 			}
 
@@ -66,8 +68,14 @@ void receiveThread(Socket* socket, Device* device)
 		{
 			case BEGIN_FILE_TYPE: {
 				std::string pathname = device->user->getFolderPath() + "/" + std::string(datagram.data);
-				std::string modificationTime = socket->receive_file(pathname);
-				device->user->addFile(pathname, modificationTime);
+				std::string times = socket->receive_file(pathname);
+				int posEnd = times.find("#"), pos;
+				std::string modificationTime = times.substr(0, posEnd);
+				pos = posEnd+1;
+				posEnd = times.find("#", posEnd+1);
+				std::string accessTime = times.substr(pos, posEnd - pos);
+				std::string creationTime = times.substr(posEnd+1, times.length() - posEnd);
+				device->user->addFile(pathname, modificationTime, accessTime, creationTime);
 				saveUsersServer(users);
 				break;
 			}

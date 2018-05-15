@@ -17,6 +17,8 @@ void saveUsersServer(std::list<UserServer*> users)
             {
                 file << f->pathname << "\n";
                 file << f->last_modified << "\n";
+                file << f->access_time << "\n";
+                file << f->creation_time << "\n";
             }
         }
         file << "#end\n";
@@ -48,11 +50,17 @@ std::list<UserServer*> loadUsersServer()
                 while (line != "#end") {
                     std::getline(file, line);
                     if (line != "#end"){
-                        File newFile;// = new File();
+                        File newFile;
                         newFile.pathname = line;
                         
                         std::getline(file, line);
                         newFile.last_modified = line;
+
+                        std::getline(file, line);
+                        newFile.access_time = line;
+
+                        std::getline(file, line);
+                        newFile.creation_time = line;
                         user->files.push_back(newFile);
                     }
                 }
@@ -115,6 +123,8 @@ void printUsersServer(std::list<UserServer*> users)
             {
                 std::cout << f->pathname << "\t";
                 std::cout << f->last_modified << "\t\n";
+                std::cout << f->access_time << "\t\n";
+                std::cout << f->creation_time << "\t\n";
             }
         }
         std::cout << "\n\n";

@@ -4,7 +4,6 @@
 #include <sys/stat.h>
 
 UserServer::UserServer(void){
-    std::cout << this->deleted.size();
 }
 
 
@@ -29,11 +28,13 @@ bool UserServer::createDir()
 
 
 /* Add file in user server list of files */
-void UserServer::addFile(std::string pathname, std::string modificationTime)
+void UserServer::addFile(std::string pathname, std::string modificationTime, std::string accessTime, std::string creationTime)
 {
     for (std::list<File>::iterator it = this->files.begin(); it != this->files.end(); ++it){
     	if (it->pathname == pathname) {
 			it->last_modified = modificationTime;
+			it->access_time = accessTime;
+			it->creation_time = creationTime;
             return;
 		}
 	}
@@ -41,16 +42,25 @@ void UserServer::addFile(std::string pathname, std::string modificationTime)
 	File newFile;
 	newFile.pathname = pathname;
 	newFile.last_modified = modificationTime;
+    newFile.access_time = accessTime;
+	newFile.creation_time = creationTime;
 	this->files.push_back(newFile);
     return;
 }
 
 /* Get time modification of a file */
-std::string UserServer::getFileModificationTime(std::string pathname)
+std::string UserServer::getFileTime(std::string pathname, char type)
 {
     for (std::list<File>::iterator it = this->files.begin(); it != this->files.end(); ++it){
     	if (it->pathname == pathname) {
-            return it->last_modified;
+            if (type == 'M')
+                return it->last_modified;
+            else if (type == 'A')
+                return it->access_time;
+            else if (type == 'C')
+                return it->creation_time;
+            else
+                return std::string();
 		}
 	}
 

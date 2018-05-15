@@ -146,7 +146,7 @@ tDatagram Socket::receiveDatagram()
 	return datagram;
 }
 
-bool Socket::send_file(std::string pathname, std::string modificationTime)
+bool Socket::send_file(std::string pathname, std::string modificationTime, std::string accessTime, std::string creationTime)
 {
 	File fileHelper;
 	fileHelper.pathname = pathname;
@@ -187,10 +187,17 @@ bool Socket::send_file(std::string pathname, std::string modificationTime)
 
 	// Send last modification time
 	datagram.type = MODIFICATION_TIME;
-	if (!modificationTime.empty())
-		strcpy(datagram.data, modificationTime.c_str());
-	else
-		strcpy(datagram.data, fileHelper.getTime('M').c_str());
+	if (!modificationTime.empty()) {
+		if (accessTime.empty())
+			accessTime = fileHelper.getTime('A');
+		if (creationTime.empty())
+			creationTime = fileHelper.getTime('C');
+		strcpy(datagram.data, (modificationTime + "#" + accessTime + "#" + creationTime).c_str());
+	}
+	else {
+		strcpy(datagram.data, (fileHelper.getTime('M') + "#" + fileHelper.getTime('A') + "#" + fileHelper.getTime('C')).c_str());
+	}
+		
 
 	this->sendDatagram(datagram);
 
@@ -304,17 +311,16 @@ void Socket::send_list_server(UserServer* user)
 		std::string fileInfo;
 		File* file = new File();
 		file->pathname = f->pathname;
-		file->last_modified = f->last_modified;
 		
 		fileInfo = file->getFilename();
 		fileInfo += "#";
 		fileInfo += std::to_string(file->getSize());
 		fileInfo += "#";
-		fileInfo += std::string(file->last_modified);
+		fileInfo += std::string(f->last_modified);
 		fileInfo += "#";
-		fileInfo += std::string(file->getTime('A'));
+		fileInfo += std::string(f->access_time);
 		fileInfo += "#";
-		fileInfo += std::string(file->getTime('C'));
+		fileInfo += std::string(f->creation_time);
 
 		datagram.type = FILE_INFO;
 		strcpy(datagram.data, fileInfo.c_str());

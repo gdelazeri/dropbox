@@ -45,13 +45,15 @@ void User::executeRequest(Socket* socket)
         Request req = this->requestsToSend.front();
 
         if (req.type == UPLOAD_REQUEST){
-            socket->send_file(req.argument, std::string());
+            socket->send_file(req.argument, std::string(), std::string(), std::string());
         }
         if (req.type == UPLOAD_SYNC_REQUEST){
             File uploadedFile;
             uploadedFile.filename = req.argument;
             uploadedFile.last_modified = req.argument2;
-            socket->send_file(this->getFolderPath() + "/" + req.argument, req.argument2);
+            uploadedFile.access_time = req.argument3;
+            uploadedFile.creation_time = req.argument4;
+            socket->send_file(this->getFolderPath() + "/" + req.argument, req.argument2, req.argument3, req.argument4);
             this->addFile(uploadedFile);
             this->updateSyncTime();
         }
@@ -79,7 +81,15 @@ void User::processRequest(Socket* socket)
         if (req.type == DOWNLOAD_SYNC_REQUEST){
             File downloadedFile;
             downloadedFile.filename = req.argument;
-            downloadedFile.last_modified = socket->get_file(req.argument, this->getFolderPath() + "/");
+            
+            std::string times = socket->get_file(req.argument, this->getFolderPath() + "/");
+            int posEnd = times.find("#"), pos;
+            downloadedFile.last_modified = times.substr(0, posEnd);
+            pos = posEnd+1;
+            posEnd = times.find("#", posEnd+1);
+            downloadedFile.access_time = times.substr(pos, posEnd - pos);
+            downloadedFile.creation_time = times.substr(posEnd+1, times.length() - posEnd);
+
             this->addFile(downloadedFile);
             this->updateSyncTime();
         }
@@ -91,11 +101,11 @@ void User::processRequest(Socket* socket)
             
             filesList = socket->list_server();
 
-            std::cout << "filename\tmodified\t\taccess\t\t\tcreation\n";
+            std::cout << "filename\t\tmodified\t\taccess\t\tcreation\n";
             for (std::list<File>::iterator f = filesList.begin(); f != filesList.end(); ++f) {
-                std::cout << f->filename << "\t ";
-                std::cout << f->last_modified << "\t ";
-                std::cout << f->access_time << "\t ";
+                std::cout << f->filename << "\t";
+                std::cout << f->last_modified << "\t";
+                std::cout << f->access_time << "\t";
                 std::cout << f->creation_time << "\t\n";
             }
 			this->lockShell = 0;
@@ -262,6 +272,8 @@ void User::save()
         {
             file << f->filename << "\n";
             file << f->last_modified << "\n";
+            file << f->access_time << "\n";
+            file << f->creation_time << "\n";
             file << f->inode << "\n";
         }
     }
@@ -309,6 +321,12 @@ void User::load()
                         newFile.last_modified = line;
 
                         std::getline(file, line);
+                        newFile.access_time = line;
+
+                        std::getline(file, line);
+                        newFile.creation_time = line;
+
+                        std::getline(file, line);
                         newFile.inode = std::stoi(line);
 
                         this->files.push_back(newFile);
@@ -341,7 +359,6 @@ void User::removeFile(std::string filename){
 void User::deleteFilesFromServer(std::list<std::string> deletedFiles)
 {
     for (std::list<std::string>::iterator it = deletedFiles.begin(); it != deletedFiles.end(); ++it) {
-        std::cout << *it << std::endl;
         this->removeFile(*it);
         
         File fileToRemove;
@@ -400,7 +417,7 @@ void User::getSyncDir(Socket* receiverSocket)
     }
 
     for (auto it = uploads.begin(); it != uploads.end(); ++it)
-        this->addRequestToSend(Request(UPLOAD_SYNC_REQUEST, it->filename, it->last_modified));
+        this->addRequestToSend(Request(UPLOAD_SYNC_REQUEST, it->filename, it->last_modified, it->access_time, it->creation_time));
 
     for (auto it = downloads.begin(); it != downloads.end(); ++it)
         this->addRequestToReceive(Request(DOWNLOAD_SYNC_REQUEST, it->filename));
@@ -414,11 +431,11 @@ void User::getSyncDir(Socket* receiverSocket)
 }
 
 void User::listClient(){
-    std::cout << "filename\t\tmodified\t\taccess\t\t\tcreation\n";
+    std::cout << "filename\t\tmodified\t\taccess\t\tcreation\n";
     for (std::list<File>::iterator f = this->files.begin(); f != this->files.end(); ++f) {
-        std::cout << f->filename << "\t ";
-        std::cout << f->last_modified << "\t ";
-        std::cout << f->access_time << "\t ";
+        std::cout << f->filename << "\t";
+        std::cout << f->last_modified << "\t";
+        std::cout << f->access_time << "\t";
         std::cout << f->creation_time << "\t\n";
     }
 }
