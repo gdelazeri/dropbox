@@ -7,22 +7,16 @@
 #include <iostream>
 #include <algorithm>
 
-void saveUsersServer(std::list<UserServer*> users);
-std::list<UserServer*> loadUsersServer();
-void printUsersServer(std::list<UserServer*> users);
-int createNewPort(std::list<int> portsInUse);
-std::pair<int, int> getPorts(char* data);
-std::string getCurrentTime();
-
+/* Constants */
 #define SERVER_PORT 4000
 #define SERVER_NAME "[server@dropbox] "
 #define CLIENT_NAME "[client@dropbox] "
 
-/* Socket side definition */
+/* Socket side */
 #define SOCK_CLIENT 0
 #define SOCK_SERVER 1
 
-/* Datagram definition */
+/* Datagram types */
 #define ERROR 'E'
 #define CLOSE 'C'
 #define LOGIN 'L'
@@ -43,6 +37,7 @@ std::string getCurrentTime();
 #define BUFFER_SIZE 6000
 #define MAX_DATA_SIZE 5999
 
+/* Requests types */
 #define UPLOAD_REQUEST 1
 #define EXIT_REQUEST 2
 #define DOWNLOAD_REQUEST 3
@@ -50,12 +45,20 @@ std::string getCurrentTime();
 #define DOWNLOAD_SYNC_REQUEST 5
 #define UPLOAD_SYNC_REQUEST 6
 #define DELETE_REQUEST 7
-#define RENAME_REQUEST 8
 
+/* Struct that defines the Datagram */
 typedef struct tDatagram
 {
   char type;
   char data[MAX_DATA_SIZE];
 } tDatagram;
+
+/* Util functions */
+void saveUsersServer(std::list<UserServer*> users);
+std::list<UserServer*> loadUsersServer();
+void printUsersServer(std::list<UserServer*> users);
+int createNewPort(std::list<int> portsInUse);
+std::pair<int, int> getPorts(char* data);
+std::string getCurrentTime();
 
 #endif

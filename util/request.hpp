@@ -3,12 +3,13 @@
 
 #include <string>
 
-class Request // : public Communication
+class Request
 {
 	public:
 		int type;
         std::string argument;
         std::string argument2;
+
 		Request(int type, std::string argument);
 		Request(int type, std::string argument, std::string argument2);
 };

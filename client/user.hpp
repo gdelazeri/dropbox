@@ -8,11 +8,14 @@
 #include "socket.hpp"
 #include "file.hpp"
 
-#define EVENT_SIZE  ( sizeof (struct inotify_event) )
-#define BUF_LEN     ( 1024 * ( EVENT_SIZE + 16 ) )
 
 class User
 {
+	private:
+        std::mutex sendAccess;
+        std::mutex rcvAccess;
+        std::mutex syncDir;
+
 	public:
         std::string userid;
         int logged_in;
@@ -34,15 +37,18 @@ class User
         std::string getFolderPath();
         void updateSyncTime();
 
-        // Files
+        // Files Handlers
         std::list<File> getFilesFromFS();
         std::list<File> filesToUpload(std::list<File> systemFiles);
         std::list<File> filesToDownload(Socket* receiverSocket);
         std::list<File> filesToDelete(std::list<File> systemFiles);
-        void updateFiles(std::list<File> uploadFiles, std::list<File> downloadFiles);
         void addFile(File newFile);
         void removeFile(std::string filename);
         void deleteFilesFromServer(std::list<std::string> deletedFiles);
+
+        // Primitives
+        void getSyncDir(Socket* receiverSocket);
+        void listClient();
 
         void save();
         void load();

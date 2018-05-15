@@ -9,7 +9,6 @@ void User::login(std::string userid)
     this->userid = userid;
     this->logged_in = 1;
     this->lockShell = 0;
-    this->createDir();
 }
 
 void User::logout()
@@ -27,12 +26,16 @@ bool User::createDir()
 
 void User::addRequestToSend(Request newRequest)
 {
+    this->sendAccess.lock();
     this->requestsToSend.push(newRequest);
+    this->sendAccess.unlock();
 }
 
 void User::addRequestToReceive(Request newRequest)
 {
+    this->rcvAccess.lock();
     this->requestsToReceive.push(newRequest);
+    this->rcvAccess.unlock();
 }
 
 void User::executeRequest(Socket* socket)
@@ -88,10 +91,9 @@ void User::processRequest(Socket* socket)
             
             filesList = socket->list_server();
 
-            std::cout << "filename\tsize\tmodified\t\taccess\t\t\tcreation\n";
+            std::cout << "filename\tmodified\t\taccess\t\t\tcreation\n";
             for (std::list<File>::iterator f = filesList.begin(); f != filesList.end(); ++f) {
                 std::cout << f->filename << "\t ";
-                std::cout << f->size << "\t ";
                 std::cout << f->last_modified << "\t ";
                 std::cout << f->access_time << "\t ";
                 std::cout << f->creation_time << "\t\n";
@@ -113,6 +115,7 @@ std::string User::getFolderPath()
     return "client/sync_dir_" + this->userid;
 }
 
+/* Get all files from folder "client/sync_dir_" + userid */
 std::list<File> User::getFilesFromFS()
 {
     std::list<File> systemFiles;
@@ -138,6 +141,7 @@ std::list<File> User::getFilesFromFS()
     return systemFiles;
 }
 
+/* Compare files from folder sync_dir and files that are synchronized */
 std::list<File> User::filesToUpload(std::list<File> systemFiles)
 {
     std::list<File> uploadFiles;
@@ -164,6 +168,7 @@ std::list<File> User::filesToUpload(std::list<File> systemFiles)
     return uploadFiles;
 }
 
+/* Compare files synchronized with server files */
 std::list<File> User::filesToDownload(Socket* receiverSocket)
 {
     std::list<File> serverFiles, downloadFiles;
@@ -190,6 +195,7 @@ std::list<File> User::filesToDownload(Socket* receiverSocket)
     return downloadFiles;
 }
 
+/* Compare files synchronized with folder sync_dir */
 std::list<File> User::filesToDelete(std::list<File> systemFiles)
 {
     std::list<File> deleteFiles;
@@ -210,33 +216,7 @@ std::list<File> User::filesToDelete(std::list<File> systemFiles)
     return deleteFiles;
 }
 
-void User::updateFiles(std::list<File> uploadFiles, std::list<File> downloadFiles)
-{
-    std::list<File> newFiles = uploadFiles;
-    newFiles.splice(newFiles.end(), downloadFiles);
-
-    for (std::list<File>::iterator newFile = newFiles.begin(); newFile != newFiles.end(); ++newFile)
-    {
-        bool found = false;
-        for (std::list<File>::iterator userFile = this->files.begin(); userFile != this->files.end(); ++userFile)
-        {
-            if (newFile->filename == userFile->filename)
-            {
-                found = true;
-                userFile->last_modified = newFile->last_modified;
-            }
-        }
-
-        if (!found) {
-            File fileToAdd;
-            fileToAdd.filename = newFile->filename;
-            fileToAdd.last_modified = newFile->last_modified;
-            fileToAdd.inode = newFile->inode;
-            this->files.push_back(fileToAdd);
-        }
-    }
-}
-
+/* Add a file in user file list */
 void User::addFile(File newFile)
 {
     bool found = false;
@@ -244,6 +224,7 @@ void User::addFile(File newFile)
     {
         if (newFile.filename == userFile->filename)
         {
+            // Edit file
             found = true;
             userFile->pathname = this->getFolderPath() + "/" + userFile->filename;
             userFile->size = userFile->getSize();
@@ -254,6 +235,7 @@ void User::addFile(File newFile)
         userFile->inode = userFile->getInode(this->getFolderPath() + "/");
     }
 
+    // Add new file
     if (!found) {
         newFile.pathname = this->getFolderPath() + "/" + newFile.filename;
         newFile.inode = newFile.getInode(this->getFolderPath() + "/");
@@ -265,6 +247,7 @@ void User::addFile(File newFile)
     }
 }
 
+/* Save user data in database (txt) */
 void User::save()
 {
     std::fstream file;
@@ -286,6 +269,7 @@ void User::save()
     file.close();
 }
 
+/* Load user data from database (txt) */
 void User::load()
 {
     std::fstream file;
@@ -338,10 +322,12 @@ void User::load()
     file.close();
 }
 
+/* Update property lastSync to storage the last date when files were synchronizes */
 void User::updateSyncTime(){
     this->lastSync = getCurrentTime();
 }
 
+/* Remove some file from user files list */
 void User::removeFile(std::string filename){
     for (std::list<File>::iterator it = this->files.begin(); it != this->files.end(); ++it){
     	if (it->filename == filename) {
@@ -351,6 +337,7 @@ void User::removeFile(std::string filename){
 	}
 }
 
+/* Delete file that was deleted in other device */
 void User::deleteFilesFromServer(std::list<std::string> deletedFiles)
 {
     for (std::list<std::string>::iterator it = deletedFiles.begin(); it != deletedFiles.end(); ++it) {
@@ -364,4 +351,74 @@ void User::deleteFilesFromServer(std::list<std::string> deletedFiles)
                 perror( "Error deleting file" );
         }
 	}
+}
+
+/* Synchronize directory */
+void User::getSyncDir(Socket* receiverSocket)
+{
+    this->createDir();
+    
+    this->syncDir.lock();
+
+    std::list<File> localFiles, serverFiles, systemFiles;
+    std::list<File> uploads, downloads, deleted;
+    uploads = std::list<File>();
+    downloads = std::list<File>();
+
+    this->deleteFilesFromServer(receiverSocket->listDeleted());
+    systemFiles = this->getFilesFromFS();
+    localFiles = this->filesToUpload(systemFiles);
+    serverFiles = this->filesToDownload(receiverSocket);
+    deleted = this->filesToDelete(systemFiles);
+
+    // Merge to upload
+    for (auto upFile = localFiles.begin(); upFile != localFiles.end(); upFile++) {
+        bool found = false;
+        for (auto downFile = serverFiles.begin(); downFile != serverFiles.end(); downFile++) {
+            if (upFile->filename == downFile->filename) {
+                found = true;
+                if (upFile->last_modified > downFile->last_modified)
+                    uploads.push_back(*upFile);
+            }
+        }
+        if (!found)
+            uploads.push_back(*upFile);
+    }
+        
+    // Merge to download
+    for (auto downFile = serverFiles.begin(); downFile != serverFiles.end(); downFile++) {
+        bool found = false;
+        for (auto upFile = localFiles.begin(); upFile != localFiles.end(); upFile++) {
+            if (upFile->filename == downFile->filename) {
+                found = true;
+                if (upFile->last_modified <= downFile->last_modified)
+                    downloads.push_back(*downFile);
+            }
+        }
+        if (!found)
+            downloads.push_back(*downFile);
+    }
+
+    for (auto it = uploads.begin(); it != uploads.end(); ++it)
+        this->addRequestToSend(Request(UPLOAD_SYNC_REQUEST, it->filename, it->last_modified));
+
+    for (auto it = downloads.begin(); it != downloads.end(); ++it)
+        this->addRequestToReceive(Request(DOWNLOAD_SYNC_REQUEST, it->filename));
+    
+    for (auto it = deleted.begin(); it != deleted.end(); ++it)
+        this->addRequestToSend(Request(DELETE_REQUEST, it->filename));
+
+    this->save();
+
+    this->syncDir.unlock();
+}
+
+void User::listClient(){
+    std::cout << "filename\t\tmodified\t\taccess\t\t\tcreation\n";
+    for (std::list<File>::iterator f = this->files.begin(); f != this->files.end(); ++f) {
+        std::cout << f->filename << "\t ";
+        std::cout << f->last_modified << "\t ";
+        std::cout << f->access_time << "\t ";
+        std::cout << f->creation_time << "\t\n";
+    }
 }

@@ -42,11 +42,6 @@ std::string File::getExtension()
     return this->pathname.substr(pointIndex, this->pathname.length()).c_str();
 }
 
-std::string File::getPath()
-{
-    return "";
-}
-
 int File::getSize()
 {
 	std::fstream file;

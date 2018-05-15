@@ -22,7 +22,6 @@ class File
 		File(void);
 		File(std::string pathname);
 		std::string getFilename();
-		std::string getPath();
 		std::string getName();
 		std::string getExtension();
 		int getSize();

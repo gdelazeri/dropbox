@@ -18,6 +18,7 @@ std::string UserServer::getFolderPath()
     return "server/sync_dir_" + this->userid;
 }
 
+/* Creates sync_dir if not exists yet */
 bool UserServer::createDir()
 {
     std::string dir = this->getFolderPath();
@@ -27,7 +28,7 @@ bool UserServer::createDir()
 }
 
 
-// Files
+/* Add file in user server list of files */
 void UserServer::addFile(std::string pathname, std::string modificationTime)
 {
     for (std::list<File>::iterator it = this->files.begin(); it != this->files.end(); ++it){
@@ -44,6 +45,7 @@ void UserServer::addFile(std::string pathname, std::string modificationTime)
     return;
 }
 
+/* Get time modification of a file */
 std::string UserServer::getFileModificationTime(std::string pathname)
 {
     for (std::list<File>::iterator it = this->files.begin(); it != this->files.end(); ++it){
@@ -55,6 +57,7 @@ std::string UserServer::getFileModificationTime(std::string pathname)
     return std::string();
 }
 
+/* Remove file from user server list of files and directory */
 void UserServer::removeFile(std::string pathname)
 {
     for (std::list<File>::iterator it = this->files.begin(); it != this->files.end(); ++it){
@@ -64,7 +67,11 @@ void UserServer::removeFile(std::string pathname)
 		}
 	}
 
-    if( remove(pathname.c_str()) != 0 )
-        perror( "Error deleting file" );
+    File removedFile;
+    removedFile.pathname = pathname;
+
+    if (removedFile.exists())
+        if(remove(pathname.c_str()) != 0)
+            perror( "Error deleting file" );
 }
 

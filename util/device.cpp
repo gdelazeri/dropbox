@@ -6,6 +6,7 @@ Device::Device(UserServer* user)
 	this->user = user;
 }
 
+/* Set flag to connected and control user devices limit */
 bool Device::connect()
 {
 	if (this->user->devices < 2)
@@ -20,6 +21,7 @@ bool Device::connect()
 	}
 }
 
+/* Set flag to disconnected and control user devices limit */
 bool Device::disconnect()
 {
 	if (this->user->devices > 0)

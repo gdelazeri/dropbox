@@ -14,11 +14,13 @@ class UserServer
         std::list<std::pair<std::string, int>> deleted;
 
 		UserServer();
+
 		void login();
 		void logout();
+		
+		bool createDir();
 		std::string getFolderName();
 		std::string getFolderPath();
-		bool createDir();
 
 		// Files
 		void addFile(std::string pathname, std::string modificationTime);

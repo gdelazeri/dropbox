@@ -89,7 +89,7 @@ void receiveThread(Socket* socket, Device* device)
 	socket->finish();
 	portsInUse.remove(socket->port);
 	delete socket;
-	say("Logout user: " + device->user->userid);
+	say("Logout: " + device->user->userid);
 }
 
 UserServer* searchUser(std::string userid)
@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
 		if (datagram.type == LOGIN)
 		{
 			user = searchUser(std::string(datagram.data));
-			say("New login: " + user->userid);
+			say("Login: " + user->userid);
 			saveUsersServer(users);
 			Device* newDevice = new Device(user);
 
