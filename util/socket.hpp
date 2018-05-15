@@ -1,28 +1,57 @@
-// #include "../util/communication.hpp"
-#include <string>
-#include <netinet/in.h>
+#ifndef __SOCKET_HPP__
+#define __SOCKET_HPP__
+
+#include "file.hpp"
+#include <stdio.h>
+#include <cstdlib>
+#include <string.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include "helper.hpp"
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <cstddef>
+#include "dropboxUtil.hpp"
 
-class Socket // : public Communication
+class Socket
 {
 	protected:
 		int side;
-		int port;
 		int socketFd;
+
 	public:
+		int port;
 		struct sockaddr_in socketAddress;
 		struct sockaddr_in from;
+
 		Socket(int side);
-		struct sockaddr_in createSocket(std::string host, int port);
-		bool sendDatagram2(tDatagram datagram, struct sockaddr_in sockAddr);
+
+		int createSocket(int port);
 		int login_server(std::string host, int port);
-		bool sendMessage(std::string message);
+
 		bool sendDatagram(tDatagram datagram);
-		char* receiveMessage();
 		tDatagram receiveDatagram();
-		tDatagram receiveDatagram2();
-		void send_file(std::string filename);
-		void receive_file(std::string filename);
+		
+		std::string get_file(std::string filename, std::string path);
+		bool send_file(std::string pathname, std::string modificationTime);
+		std::string receive_file(std::string filename);
+		
+		std::list<File> list_server();
+		void send_list_server(UserServer* user);
+
+		std::list<std::string> listDeleted();
+		void sendListDeleted(UserServer* user);
+
+		void deleteFile(std::string filename);
+
+		bool sendAck();
+		bool waitAck();
+
+		void finish();
+		bool close_session();
 };
+#endif

@@ -1,15 +1,4 @@
-// #include "foldermanager.hpp"
-// #include "clientcomm.hpp"
-// #include "clientuser.hpp"
-// #include "device.hpp"
-// #include "file.hpp"
-
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-
 #include <iostream>
 #include <iterator>
 #include <thread>
@@ -17,98 +6,122 @@
 #include <map>
 #include <string.h>
 #include <stdio.h>
-#include <mutex>
-
+#include <stdlib.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/inotify.h>
 #include "user.hpp"
-
-// #include <csignal>
-// #include <condition_variable>
-// #include <mutex>
 
 User* user = new User();
 
-/* Utils */
-void say(std::string message) {
-	std::cout << CLIENT_NAME << message << "\n";
-}
-
-/* Parse data ports */
-std::pair<int, int> getPorts(char* data) {
-	std::string port = std::string(data);
-	int p1 = std::stoi(port.substr(0,4));
-	int p2 = std::stoi(port.substr(4,8));
-
-	return std::make_pair(p1, p2);
-}
-
-void sendThread(Socket* socket)
+void say(std::string message) 
 {
-	while(user->isConnected)
+	if (user->userid.empty())
+		std::cout << CLIENT_NAME  << message << "\n";
+	else
+		std::cout << "[" << user->userid << "@dropbox] "  << message << "\n";
+}
+
+/* Thread to synchronize files between Client and Server  */
+void syncThread(Socket* receiverSocket)
+{
+	while(user->logged_in)
 	{
-		// std::cout << "sendThread\n";
-		user->executeRequest(socket);
+		user->getSyncDir(receiverSocket);
+		std::this_thread::sleep_for(std::chrono::seconds(5));
 	}
 }
 
-void receiveThread(Socket* socket)
+/* Thread to call method to execute requests and send files */
+void sendThread(Socket* senderSocket)
 {
-	while(user->isConnected)
+	while(user->logged_in)
 	{
-		// std::cout << "receiveThread\n";
-		// user->processResquest(socket);
+		user->executeRequest(senderSocket);
 	}
+	senderSocket->finish();
+	delete senderSocket;
 }
 
-void shellThread()
+/* Thread to call method to process requests and receive files */
+void receiveThread(Socket* receiverSocket)
 {
-	std::mutex block;
-
-	while(user->isConnected)
+	while(user->logged_in)
 	{
-		say("shellThread");
-		std::string line;
-		std::string command;
-		std::string argument;
-		std::size_t pos;
+		user->processRequest(receiverSocket);
+	}
+	receiverSocket->finish();
+	delete receiverSocket;
+}
 
-		std::getline(std::cin, line);
-
-		if((pos = line.find(" ")) != std::string::npos)
+/* Thread that interact with user and process commands */
+void shellThread(Socket* receiverSocket)
+{
+	say("Type your command:");
+	while(user->logged_in)
+	{
+		if (user->lockShell == 0)
 		{
-			command = line.substr(0, pos);
-			line = line.substr(pos+1, std::string::npos);
-			if(line != "")
-				argument = line;
-			else
-				argument = "";
-			line = "";
-		}
-		else
-		{
-			command = line;
-			line = "";
-		}
+			std::string line;
+			std::string command;
+			std::string arg;
+			std::size_t pos;
 
-		if(command == "upload"){
-			std::cout << command << '\n';
-			user->addRequestToSend(Request(UPLOAD_REQUEST, argument));
+			std::cout << ">> ";
+			std::getline(std::cin, line);
+
+			if((pos = line.find(" ")) != std::string::npos) {
+				command = line.substr(0, pos);
+				line = line.substr(pos+1, std::string::npos);
+				if(line != "")
+					arg = line;
+				else
+					arg = "";
+				line = "";
+			} else {
+				command = line;
+				line = "";
+			}
+
+			if(command == "upload"){
+				user->addRequestToSend(Request(UPLOAD_REQUEST, arg));
+			}
+			else if(command == "download"){
+				user->addRequestToReceive(Request(DOWNLOAD_REQUEST, arg));
+			}
+			else if(command == "list_server"){
+				user->lockShell = 1;
+				user->addRequestToReceive(Request(LIST_SERVER_REQUEST, arg));
+			}
+			else if(command == "list_client"){
+				user->listClient();
+			}
+			else if(command == "get_sync_dir"){
+				user->getSyncDir(receiverSocket);
+			}
+			else if(command == "exit"){
+				user->addRequestToSend(Request(EXIT_REQUEST, arg));
+				user->addRequestToReceive(Request(EXIT_REQUEST, arg));
+				user->logout();
+			}
 		}
 	}
+	say("FIM");
 }
 
 int main(int argc, char* argv[])
 {
+
 	tDatagram datagram;
 
-	// signal(SIGINT, signalHandler);
 	if(argc != 4)
 	{
 		std::cout << "Usage:\n\t ./dropboxClient <user> <address> <port>\n";
 		exit(1);
 	}
-	std::string userName = argv[1];
-    say("User: " + userName);
-	user->login();
+	user->login(argv[1]);
+    say("User: " + user->userid);
+	user->load();
 
 	// Create main communication
 	Socket* mainSocket = new Socket(SOCK_CLIENT);
@@ -116,64 +129,36 @@ int main(int argc, char* argv[])
 
 	// Send user
 	datagram.type = LOGIN;
-	strcpy(datagram.data, userName.c_str());
+	strcpy(datagram.data, user->userid.c_str());
 	mainSocket->sendDatagram(datagram);
 
 	// Receive ports
 	datagram = mainSocket->receiveDatagram();
+	if (datagram.type != NEW_PORTS) {
+		std::cout << datagram.data << std::endl;
+		exit(0);
+	}
 	std::pair<int, int> ports = getPorts(datagram.data);
-	if (datagram.type != NEW_PORTS)
-		return 1;
 
 	// Create sender and receiver communication
 	Socket* senderSocket = new Socket(SOCK_CLIENT);
 	Socket* receiverSocket = new Socket(SOCK_CLIENT);
 	senderSocket->login_server(argv[2], ports.first);
 	receiverSocket->login_server(argv[2], ports.second);
-	say("Sockets created");
 	
-	std::thread shell(shellThread);
-	std::thread sender(sendThread, senderSocket);
+	// Create threads
 	std::thread receiver(receiveThread, receiverSocket);
-	say("Threads created");
+	std::thread sender(sendThread, senderSocket);
+	std::thread sync(syncThread, receiverSocket);
+	std::thread shell(shellThread, receiverSocket);
 
+	receiver.detach();
+	sender.detach();
+	sync.detach();
 	shell.join();
-	
-	// std::thread noti(notifyThread, thisDevice, thisFolder);
 
-	return 0;
-    
-	// passiveComm->connectServer(std::string(argv[2]), atoi(argv[3]));
-	// passiveComm->sendMessage("PASSIVE");
-	// activeComm->connectServer(std::string(argv[2]), atoi(argv[3]));
-	// activeComm->sendMessage("ACTIVE");
-
-	// activeComm->sendMessage(userName);
-
-	// FolderManager* thisFolder;
-	// if(argc == 5){
-	// 	thisFolder = new FolderManager(std::string(argv[4]));
-	// }
-	// else {
-	// 	thisFolder = NULL;
-	// }
-
-	// Device* thisDevice = new Device(
-	// 	ActiveProcess(activeComm, thisFolder),
-	// 	PassiveProcess(passiveComm, thisFolder)
-	// );
-
-	// user = new ClientUser(userName, thisFolder, thisDevice);
-	// if(argc == 5) {
-	// 	user->synchronize();
-	// 	thisDevice->pushAction(Action(ACTION_INITILIAZE));
-	// }
-	// std::thread io(ioThread, thisDevice);
-	// std::thread act(activeThread, thisDevice);
-	// std::thread pass(passiveThread, thisDevice);
-	// std::thread noti(notifyThread, thisDevice, thisFolder);
-
-	// io.join();
+	user->save();
+	mainSocket->finish();
 
 	return 0;
 }

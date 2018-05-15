@@ -1,17 +1,30 @@
+#ifndef __USERSERVER_HPP__
+#define __USERSERVER_HPP__
+
 #include <string>
 #include <list>
+#include "file.hpp"
 
 class UserServer
 {
 	public:
-		int	devices[2];
+		int	devices;
         std::string userid;
-        // File files[10];
-		int logged_in;
+        std::list<File> files;
+        std::list<std::pair<std::string, int>> deleted;
+
+		UserServer();
 
 		void login();
 		void logout();
+		
+		bool createDir();
 		std::string getFolderName();
 		std::string getFolderPath();
-		bool createDir();
+
+		// Files
+		void addFile(std::string pathname, std::string modificationTime);
+		std::string getFileModificationTime(std::string pathname);
+		void removeFile(std::string pathname);
 };
+#endif

@@ -1,14 +1,7 @@
-// #include "database.hpp"
-// #include "foldermanager.hpp"
-// #include "servercomm.hpp"
-// #include "serveruser.hpp"
-// #include "device.hpp"
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -17,112 +10,104 @@
 #include <list>
 #include <algorithm>
 #include <string.h>
-
 #include "socket.hpp"
-#include "userServer.hpp"
+#include "device.hpp"
 
 std::list<int> portsInUse;
-std::list<UserServer> users;
+std::list<UserServer*> users;
 
 /* Utils */
 void say(std::string message){
 	std::cout << SERVER_NAME << message << "\n";
 }
-
-int createNewPort(){
-	int newPort;
-	std::list<int>::iterator findIter;
-	
-	while(1) {
-		newPort = std::rand() % 2000 + SERVER_PORT;
-		findIter = std::find(portsInUse.begin(), portsInUse.end(), newPort);
-		if (*findIter == (int) portsInUse.size()) {
-			portsInUse.push_back(newPort);
-			return newPort;
-		}
-	}
-}
-
-void sendThread(Socket* socket, UserServer* user)
+				
+void sendThread(Socket* socket, Device* device)
 {
 	tDatagram datagram;
-	
-	while(user->logged_in)
+	while(device->connected)
 	{
-		datagram = socket->receiveDatagram();
-
-	}
-}
-
-void receiveThread(Socket* socket, UserServer user)
-{
-	tDatagram datagram;
-	say("Receive thread");
-	
-	while(user.logged_in)
-	{
-		std::cout << "receiveThread\n";
 		datagram = socket->receiveDatagram();
 		switch (datagram.type)
 		{
-			case BEGIN_FILE_TYPE:
-				std::cout << "BEGIN_FILE_TYPE\n";
-				socket->receive_file(user.getFolderPath() + "/" + std::string(datagram.data));
+			case GET_FILE_TYPE: {
+				std::string pathname = device->user->getFolderPath() + "/" + std::string(datagram.data);
+				std::string modificationTime = device->user->getFileModificationTime(pathname);
+				socket->send_file(pathname, modificationTime);
+				break;
+			}
+
+			case LIST_SERVER:
+				socket->send_list_server(device->user);
+				break;
+
+			case LIST_DELETED:
+				socket->sendListDeleted(device->user);
+				break;
+
+			case CLOSE:
+				device->disconnect();
 				break;
 		}
-
-		
 	}
+
+	socket->finish();
+	portsInUse.remove(socket->port);
+	delete socket;
 }
 
-UserServer searchUser(std::string userid)
+void receiveThread(Socket* socket, Device* device)
 {
-	for (std::list<UserServer>::iterator it = users.begin(); it != users.end(); ++it){
-    	if (it->userid == userid)
+	tDatagram datagram;
+	
+	while(device->connected)
+	{
+		datagram = socket->receiveDatagram();
+		switch (datagram.type)
 		{
-			it->logged_in = 1;
-			it->createDir();
+			case BEGIN_FILE_TYPE: {
+				std::string pathname = device->user->getFolderPath() + "/" + std::string(datagram.data);
+				std::string modificationTime = socket->receive_file(pathname);
+				device->user->addFile(pathname, modificationTime);
+				saveUsersServer(users);
+				break;
+			}
+
+			case DELETE_TYPE: {
+				std::string pathname = device->user->getFolderPath() + "/" + std::string(datagram.data);
+				device->user->removeFile(pathname);
+				device->user->deleted.push_back(std::make_pair(std::string(datagram.data), 2));
+				saveUsersServer(users);
+				break;
+			}
+
+			case CLOSE:
+				device->disconnect();
+				break;
+		}
+	}
+
+	socket->finish();
+	portsInUse.remove(socket->port);
+	delete socket;
+	say("Logout: " + device->user->userid);
+}
+
+UserServer* searchUser(std::string userid)
+{
+	for (std::list<UserServer*>::iterator it = users.begin(); it != users.end(); ++it){
+    	if ((*it)->userid == userid)
+		{
+			(*it)->createDir();
 			return (*it);
 		}
 	}
-	UserServer newUserServer;
-	newUserServer.userid = userid;
-	newUserServer.logged_in = 1;
-	newUserServer.createDir();
+	UserServer* newUserServer = new UserServer();
+	newUserServer->userid = userid;
+	newUserServer->createDir();
 	users.push_back(newUserServer);
 
 	return newUserServer;
 }
-
-void saveUsersServer(std::list<UserServer> users)
-{
-    std::fstream file;
-    file.open("db.txt", std::ios::out);
-    for (std::list<UserServer>::iterator it = users.begin(); it != users.end(); ++it)
-    {
-        file << it->userid << "\n";
-	}
-    file.close();
-}
-
-std::list<UserServer> loadUsersServer()
-{
-    std::list<UserServer> users;
-    std::fstream file;
-    std::string line; 
-
-    file.open("db.txt", std::ios::in);
-    while (std::getline(file, line))
-    {
-        UserServer user;
-        user.userid = line;
-        users.push_back(user);
-    }
-    file.close();
-
-    return users;
-}
-
 
 int main(int argc, char* argv[])
 {
@@ -136,78 +121,47 @@ int main(int argc, char* argv[])
 	}
 
     Socket* mainSocket = new Socket(SOCK_SERVER);
-	mainSocket->login_server(std::string(), SERVER_PORT);
-	say("server online");
+	mainSocket->createSocket(SERVER_PORT);
+	say("Server Online");
 
-	while(1){
-		UserServer user;
+	while(true) 
+	{
+		UserServer* user = new UserServer();
 		datagram = mainSocket->receiveDatagram();
 
-		if (datagram.type != LOGIN)
-			return 1;
-		else
+		if (datagram.type == LOGIN)
 		{
 			user = searchUser(std::string(datagram.data));
-			say("login username: " + user.userid);
+			say("Login: " + user->userid);
 			saveUsersServer(users);
+			Device* newDevice = new Device(user);
+
+			if (newDevice->connect()) {
+				Socket* receiverSocket = new Socket(SOCK_SERVER);
+				Socket* senderSocket = new Socket(SOCK_SERVER);
+
+				int portReceiver = createNewPort(portsInUse);
+				int portSender = createNewPort(portsInUse);
+				receiverSocket->createSocket(portReceiver);
+				senderSocket->createSocket(portSender);
+
+				std::string ports = std::to_string(portReceiver)+std::to_string(portSender);
+				datagram.type = NEW_PORTS;
+				strcpy(datagram.data, (char *) ports.c_str());
+				mainSocket->sendDatagram(datagram);
+
+				std::thread rcv(receiveThread, receiverSocket, newDevice);
+				std::thread snd(sendThread, senderSocket, newDevice);
+				
+				rcv.detach();	
+				snd.detach();
+			}
+			else {
+				datagram.type = ERROR;
+				strcpy(datagram.data, "Too many devices for this user. Try again later.");
+				mainSocket->sendDatagram(datagram);
+			}
 		}
-		
-		Socket* receiverSocket = new Socket(SOCK_SERVER);
-		Socket* senderSocket = new Socket(SOCK_SERVER);
-
-		int portReceiver = createNewPort();
-		int portSender = createNewPort();
-		std::string ports = std::to_string(portReceiver)+std::to_string(portSender);
-		datagram.type = NEW_PORTS;
-		strcpy(datagram.data, (char *) ports.c_str());
-		say("Sending datagram");
-		mainSocket->sendDatagram(datagram);
-
-		say("Creating sockets");
-		receiverSocket->login_server(std::string(), portReceiver);
-		senderSocket->login_server(std::string(), portSender);
-		// say("waiting for a file");
-		// receiverSocket->receive_file();
-		// say("file received");
-
-		say("Creating threads");
-		std::thread rcv(receiveThread, receiverSocket, user);
-		rcv.detach();	
-		// std::thread init(initThread, thisUser, thisDevice);
-
-		// ServerComm* activeComm = server.newConnection();
-		// activeComm->receiveMessage();
-		// ServerComm* passiveComm = server.newConnection();
-		// passiveComm->receiveMessage();
-
-		// userName = passiveComm->receiveMessage();
-		// std::cout << "[server]~: user " << userName << " logged in.\n";
-
-		// ServerUser* thisUser;
-		// bool found = false;
-		// for (std::vector<ServerUser*>::iterator it = users.begin(); it != users.end(); ++it)
-		// {
-		// 	if((*it)->getName() == userName)
-		// 	{
-		// 		thisUser = (*it);
-		// 		found = true;
-		// 	}
-		// }
-		// if(!found){
-		// 	FolderManager* thisFolder = new FolderManager(std::string(
-		// 		database->getPath() + "sync_dir_" + userName
-		// 	));
-		// 	thisUser = new ServerUser(userName, thisFolder);
-		// 	users.push_back(thisUser);
-		// }
-		// FolderManager* thisFolder = thisUser->getFolder();
-		// Device* thisDevice = new Device(
-		// 	ActiveProcess(activeComm, thisFolder),
-		// 	PassiveProcess(passiveComm, thisFolder)
-		// );
-		// thisUser->newDevice(thisDevice);
-		// std::thread init(initThread, thisUser, thisDevice);
-		// init.detach();
 	}
 
 	return 0;
