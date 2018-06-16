@@ -62,6 +62,7 @@ void User::executeRequest(Socket* socket)
             this->removeFile(req.argument);
         }
         if (req.type == EXIT_REQUEST){
+            std::cout << "EXIT";
             socket->close_session();
         }
         
@@ -94,6 +95,7 @@ void User::processRequest(Socket* socket)
             this->updateSyncTime();
         }
         if (req.type == EXIT_REQUEST){
+            std::cout << "EXIT";
             socket->close_session();
         }
         if (req.type == LIST_SERVER_REQUEST){

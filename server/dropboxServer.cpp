@@ -28,6 +28,7 @@ void sendThread(Socket* socket, Device* device)
 	while(device->connected)
 	{
 		datagram = socket->frontEnd->receiveDatagram();
+		std::cout << "sendThread port: " << socket->frontEnd->port << std::endl;
 		switch (datagram.type)
 		{
 			case GET_FILE_TYPE: {
@@ -49,6 +50,10 @@ void sendThread(Socket* socket, Device* device)
 
 			case CLOSE:
 				device->disconnect();
+				for (std::list<std::pair<std::string, int>>::iterator it = addresses.begin(); it != addresses.end(); ++it) {
+					if (it->first == device->address && it->second == device->port)
+						addresses.erase(it++);
+				}
 				break;
 		}
 	}
@@ -65,7 +70,7 @@ void receiveThread(Socket* socket, Device* device)
 	while(device->connected)
 	{
 		datagram = socket->frontEnd->receiveDatagram();
-		std::cout << "RECEIVE!";
+		std::cout << "receiveThread in port: " << socket->frontEnd->port << std::endl;
 		switch (datagram.type)
 		{
 			case BEGIN_FILE_TYPE: {
@@ -107,18 +112,15 @@ void receiveThread(Socket* socket, Device* device)
 }
 
 void notifyClientsThread(){
+	//while(!primary)
+
 	// Socket *frontEndSocket = new Socket(SOCK_CLIENT);
+	// for (std::list<std::pair<std::string, int>>::iterator it = addresses.begin(); it != addresses.end(); ++it) {
+	// 	frontEndSocket->login_server(it->first, it->second);
+	// 	tDatagram datagram;
 
-	for (std::list<UserServer*>::iterator it = users.begin(); it != users.end(); ++it)
-    {
-		if ((*it)->devices > 0)
-		{
-			// frontEndSocket->login_server();
-
-
-			// frontEndSocket->frontEnd->finish();
-		}
-	}
+	// 	frontEndSocket->frontEnd->finish();
+	// }
 }
 
 UserServer* searchUser(std::string userid)
@@ -153,7 +155,7 @@ int main(int argc, char* argv[])
 	mainSocket->createSocket(SERVER_PORT);
 	say("Server Online");
 
-	while(true) 
+	while(true)
 	{
 		UserServer* user = new UserServer();
 		datagram = mainSocket->frontEnd->receiveDatagram();
@@ -169,10 +171,10 @@ int main(int argc, char* argv[])
 			Device* newDevice = new Device(user, getByHashString(loginInfo, 1), atoi(getByHashString(loginInfo, 2).c_str()));
 
 			if (newDevice->connect()) {
-				// addresses.push_back(std::make_pair(newDevice->address, newDevice->port));
-				// for (std::list<std::pair<std::string, int>>::iterator it = addresses.begin(); it != addresses.end(); ++it) {
-				// 	std::cout << it->first << " -> " << it->second << std::endl;
-				// }
+				addresses.push_back(std::make_pair(newDevice->address, newDevice->port));
+				for (std::list<std::pair<std::string, int>>::iterator it = addresses.begin(); it != addresses.end(); ++it) {
+					std::cout << it->first << " -> " << it->second << std::endl;
+				}
 
 				Socket* receiverSocket = new Socket(SOCK_SERVER);
 				Socket* senderSocket = new Socket(SOCK_SERVER);

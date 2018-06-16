@@ -121,27 +121,25 @@ void shellThread(Socket* receiverSocket)
 /* Thread to call method to process requests and receive files */
 void frontEndThread(Socket* receiverSocket, Socket* senderSocket)
 {
-	// Socket *frontEndSocket = new Socket(SOCK_SERVER);
-	// frontEndSocket->createSocket(PORT_FRONTEND);
-	// while(user->logged_in)
-	// {
-	// 	std::cout << "waitNewServer" << std::endl;
-	// 	std::string newAddress = frontEndSocket->waitNewServer();
-	// 	std::cout << "Address: " << newAddress << std::endl;
+	Socket *frontEndSocket = new Socket(SOCK_SERVER);
+	frontEndSocket->createSocket(PORT_FRONTEND);
+	while(user->logged_in)
+	{
+		std::string newAddress = frontEndSocket->waitNewServer();
 
-	// 	int pos = 0, posEnd;
-	// 	posEnd = newAddress.find("#");
-	// 	std::string host = newAddress.substr(pos, posEnd-pos);
-	// 	pos = posEnd+1;
-	// 	posEnd = newAddress.find("#", posEnd+1);
-	// 	int portS = atoi(newAddress.substr(pos, posEnd-pos).c_str());
-	// 	pos = posEnd+1;
-	// 	posEnd = newAddress.find("#", posEnd+1);
-	// 	int portR = atoi(newAddress.substr(pos, posEnd-pos).c_str());
+		int pos = 0, posEnd;
+		posEnd = newAddress.find("#");
+		std::string host = newAddress.substr(pos, posEnd-pos);
+		pos = posEnd+1;
+		posEnd = newAddress.find("#", posEnd+1);
+		int portS = atoi(newAddress.substr(pos, posEnd-pos).c_str());
+		pos = posEnd+1;
+		posEnd = newAddress.find("#", posEnd+1);
+		int portR = atoi(newAddress.substr(pos, posEnd-pos).c_str());
 
-	// 	senderSocket->connectNewServer(host, portS);
-	// 	receiverSocket->connectNewServer(host, portR);
-	// }
+		senderSocket->connectNewServer(host, portS);
+		receiverSocket->connectNewServer(host, portR);
+	}
 }
 
 std::string getIP(){
