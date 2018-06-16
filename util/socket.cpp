@@ -1,150 +1,105 @@
 #include "socket.hpp"
 
-struct sockaddr_in from;
+// struct sockaddr_in from;
 
 Socket::Socket(int side)
 {
-	if (side != SOCK_CLIENT && side != SOCK_SERVER)
-	{
-		fprintf(stderr, "ERROR: invalid socket side\n");
-		exit(1);
-	}
-
+	this->frontEnd = new FrontEnd(side);
 	this->side = side;
-
-	if ((this->socketFd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-	{
-		fprintf(stderr, "ERROR: open socket\n");
-		exit(1);
-	}
 }
 
 int Socket::login_server(std::string host, int port)
 {
-	if (port == 0){
-		return 1;
-	}
-
-	this->port = port;
-	struct hostent *server;
-
-	server = gethostbyname(host.c_str());
-	if (server == NULL) {
-		fprintf(stderr,"ERROR: no such host\n");
-		return 1;
-	}
-
-	this->socketAddress.sin_port = htons(this->port);    
-	this->socketAddress.sin_family = AF_INET;   
-	bzero(&(this->socketAddress.sin_zero), 8);
-	this->socketAddress.sin_addr = *((struct in_addr *)server->h_addr);
-	
-	return 0;
+	return this->frontEnd->login(host, port);
 }
 
 int Socket::createSocket(int port)
 {
-	if (port == 0){
-		return 1;
-	}
-
-	this->port = port;
-
-	this->socketAddress.sin_port = htons(this->port);    
-	this->socketAddress.sin_family = AF_INET;   
-	bzero(&(this->socketAddress.sin_zero), 8);
-	this->socketAddress.sin_addr.s_addr = INADDR_ANY;
-	if (bind(this->socketFd, (struct sockaddr *) &this->socketAddress, sizeof(struct sockaddr)) < 0) 
-	{
-		fprintf(stderr,"ERROR: bind host\n");
-		return 1;
-	}
-
-	return 0;
+	return this->frontEnd->create(port);
 }
 
-bool Socket::sendAck()
-{
-	int n;
-	char* buffer = (char*) calloc(1, BUFFER_SIZE);
-	buffer[0] = ACK;
+// bool Socket::sendAck()
+// {
+// 	int n;
+// 	char* buffer = (char*) calloc(1, BUFFER_SIZE);
+// 	buffer[0] = ACK;
 
-	if (this->side == SOCK_SERVER)
-		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &from, sizeof(struct sockaddr));
-	else
-		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &this->socketAddress, sizeof(struct sockaddr_in));
+// 	if (this->side == SOCK_SERVER)
+// 		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &from, sizeof(struct sockaddr));
+// 	else
+// 		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &this->socketAddress, sizeof(struct sockaddr_in));
 
-	if (n < 0)
-	{
-		std::cout << "ERROR sendto";
-		return false;
-	}
-	return true;
-}
+// 	if (n < 0)
+// 	{
+// 		std::cout << "ERROR sendto";
+// 		return false;
+// 	}
+// 	return true;
+// }
 
-bool Socket::waitAck()
-{
-	socklen_t length = sizeof(struct sockaddr_in);
-	char* buffer = (char*) calloc(1, BUFFER_SIZE);
+// bool Socket::waitAck()
+// {
+// 	socklen_t length = sizeof(struct sockaddr_in);
+// 	char* buffer = (char*) calloc(1, BUFFER_SIZE);
 
-	int n = recvfrom(this->socketFd, buffer, BUFFER_SIZE, 0, (struct sockaddr *) &from, &length);
-	if (n < 0)
-	{
-		std::cout << "ERROR recvfrom";
-		return false;
-	}
-	if (buffer[0] == ACK)
-		return true;
+// 	int n = recvfrom(this->socketFd, buffer, BUFFER_SIZE, 0, (struct sockaddr *) &from, &length);
+// 	if (n < 0)
+// 	{
+// 		std::cout << "ERROR recvfrom";
+// 		return false;
+// 	}
+// 	if (buffer[0] == ACK)
+// 		return true;
 	
-	return false;
-}
+// 	return false;
+// }
 
 
-bool Socket::sendDatagram(tDatagram datagram)
-{
-	int n;
-	char* buffer = (char*) calloc(1, BUFFER_SIZE);
+// bool Socket::sendDatagram(tDatagram datagram)
+// {
+// 	int n;
+// 	char* buffer = (char*) calloc(1, BUFFER_SIZE);
 
-	memcpy(buffer, &datagram, sizeof(datagram));
-	if (this->side == SOCK_SERVER) {
-		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &from, sizeof(struct sockaddr));
-	}
-	else {
-		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &this->socketAddress, sizeof(struct sockaddr_in));
-	}
-	if (n < 0)
-	{
-		std::cout << "ERROR: sendto";
-		return false;
-	}
+// 	memcpy(buffer, &datagram, sizeof(datagram));
+// 	if (this->side == SOCK_SERVER) {
+// 		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &from, sizeof(struct sockaddr));
+// 	}
+// 	else {
+// 		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &this->socketAddress, sizeof(struct sockaddr_in));
+// 	}
+// 	if (n < 0)
+// 	{
+// 		std::cout << "ERROR: sendto";
+// 		return false;
+// 	}
 
-	if (!this->waitAck())
-	{
-		std::cout << "ERROR: ack miss";
-		return false;
-	}
+// 	if (!this->waitAck())
+// 	{
+// 		std::cout << "ERROR: ack miss";
+// 		return false;
+// 	}
 	
-	return true;
-}
+// 	return true;
+// }
 
-tDatagram Socket::receiveDatagram()
-{
-	tDatagram datagram;
-	socklen_t length = sizeof(struct sockaddr_in);
-	char* buffer = (char*) calloc(1, BUFFER_SIZE);
+// tDatagram Socket::receiveDatagram()
+// {
+// 	tDatagram datagram;
+// 	socklen_t length = sizeof(struct sockaddr_in);
+// 	char* buffer = (char*) calloc(1, BUFFER_SIZE);
 
-	int n = recvfrom(this->socketFd, buffer, BUFFER_SIZE, 0, (struct sockaddr *) &from, &length);
-	if (n < 0)
-	{
-		std::cout << "ERROR: recvfrom";
-		datagram.type = ERROR;
-		return datagram;
-	}
-	memcpy(&datagram, buffer, sizeof(datagram));
-	this->sendAck();
+// 	int n = recvfrom(this->socketFd, buffer, BUFFER_SIZE, 0, (struct sockaddr *) &from, &length);
+// 	if (n < 0)
+// 	{
+// 		std::cout << "ERROR: recvfrom";
+// 		datagram.type = ERROR;
+// 		return datagram;
+// 	}
+// 	memcpy(&datagram, buffer, sizeof(datagram));
+// 	this->frontEnd->sendAck();
 
-	return datagram;
-}
+// 	return datagram;
+// }
 
 bool Socket::send_file(std::string pathname, std::string modificationTime, std::string accessTime, std::string creationTime)
 {
@@ -167,7 +122,7 @@ bool Socket::send_file(std::string pathname, std::string modificationTime, std::
 	datagram.type = BEGIN_FILE_TYPE;
 	strcpy(datagram.data, fileHelper.getFilename().c_str());
 
-	this->sendDatagram(datagram);
+	this->frontEnd->sendDatagram(datagram);
 
 	// Send file
 	datagram.type = FILE_TYPE;
@@ -177,13 +132,13 @@ bool Socket::send_file(std::string pathname, std::string modificationTime, std::
 		bytesToRead = (fileSize - bytesSent < MAX_DATA_SIZE-1) ?  (fileSize - bytesSent) : MAX_DATA_SIZE-1;
 		file.read(buffer, bytesToRead);
 		strcpy(datagram.data, (char *) buffer);
-		this->sendDatagram(datagram);
+		this->frontEnd->sendDatagram(datagram);
 		bytesSent += bytesToRead;
 	}
 
 	// Send end of file
 	datagram.type = END_DATA;
-	this->sendDatagram(datagram);
+	this->frontEnd->sendDatagram(datagram);
 
 	// Send last modification time
 	datagram.type = MODIFICATION_TIME;
@@ -199,7 +154,7 @@ bool Socket::send_file(std::string pathname, std::string modificationTime, std::
 	}
 		
 
-	this->sendDatagram(datagram);
+	this->frontEnd->sendDatagram(datagram);
 
 	file.close();
 
@@ -214,9 +169,9 @@ std::string Socket::get_file(std::string filename, std::string path)
 	// Request file
 	datagram.type = GET_FILE_TYPE;
 	strcpy(datagram.data, filename.c_str());
-	this->sendDatagram(datagram);
+	this->frontEnd->sendDatagram(datagram);
 
-	datagram = this->receiveDatagram();
+	datagram = this->frontEnd->receiveDatagram();
 	if (datagram.type == BEGIN_FILE_TYPE)
 		return this->receive_file(path + std::string(datagram.data));
 
@@ -229,17 +184,17 @@ std::string Socket::receive_file(std::string filename)
 	tDatagram datagram;
 	std::fstream file;
 	file.open(filename.c_str(), std::ios::binary | std::ios::out);
-	datagram = this->receiveDatagram();
+	datagram = this->frontEnd->receiveDatagram();
 	while(datagram.type == FILE_TYPE && datagram.type != END_DATA)
 	{
 		file.write(datagram.data, strlen(datagram.data));
-		datagram = this->receiveDatagram();
+		datagram = this->frontEnd->receiveDatagram();
 	}
 	
 	file.close();
 
 	// get the modification time from the file
-	datagram = this->receiveDatagram();
+	datagram = this->frontEnd->receiveDatagram();
 	if (datagram.type == MODIFICATION_TIME) {
 		return std::string(datagram.data);
 	}
@@ -251,13 +206,13 @@ bool Socket::close_session()
 	tDatagram datagram;
 
 	datagram.type = CLOSE;
-	return this->sendDatagram(datagram);
+	return this->frontEnd->sendDatagram(datagram);
 }
 
-void Socket::finish()
-{
-	close(this->socketFd);
-}
+// void Socket::finish()
+// {
+// 	close(this->socketFd);
+// }
 
 std::list<File> Socket::list_server()
 {
@@ -265,9 +220,9 @@ std::list<File> Socket::list_server()
 	std::list<File> filesList;
 	
 	datagram.type = LIST_SERVER;
-	this->sendDatagram(datagram);
+	this->frontEnd->sendDatagram(datagram);
 
-	datagram = this->receiveDatagram();
+	datagram = this->frontEnd->receiveDatagram();
 	while(datagram.type == FILE_INFO && datagram.type != END_DATA)
 	{
 		File newFile;
@@ -296,7 +251,7 @@ std::list<File> Socket::list_server()
 
 		filesList.push_back(newFile);
 
-		datagram = this->receiveDatagram();
+		datagram = this->frontEnd->receiveDatagram();
 	}
 
 	return filesList;
@@ -324,12 +279,12 @@ void Socket::send_list_server(UserServer* user)
 
 		datagram.type = FILE_INFO;
 		strcpy(datagram.data, fileInfo.c_str());
-		this->sendDatagram(datagram);
+		this->frontEnd->sendDatagram(datagram);
 	}
 
 	tDatagram datagram;
 	datagram.type = END_DATA;
-	this->sendDatagram(datagram);
+	this->frontEnd->sendDatagram(datagram);
 }
 
 std::list<std::string> Socket::listDeleted()
@@ -338,13 +293,13 @@ std::list<std::string> Socket::listDeleted()
 	std::list<std::string> deletedFiles = std::list<std::string>();
 	
 	datagram.type = LIST_DELETED;
-	this->sendDatagram(datagram);
+	this->frontEnd->sendDatagram(datagram);
 
-	datagram = this->receiveDatagram();
+	datagram = this->frontEnd->receiveDatagram();
 	while(datagram.type == DELETED_FILE && datagram.type != END_DATA)
 	{
 		deletedFiles.push_back(std::string(datagram.data));
-		datagram = this->receiveDatagram();
+		datagram = this->frontEnd->receiveDatagram();
 	}
 
 	return deletedFiles;
@@ -359,7 +314,7 @@ void Socket::sendListDeleted(UserServer* user)
 			tDatagram datagram;
 			datagram.type = DELETED_FILE;
 			strcpy(datagram.data, f->first.c_str());
-			this->sendDatagram(datagram);
+			this->frontEnd->sendDatagram(datagram);
 			f->second = f->second - 1;
 			if (f->second == 0)
 				user->deleted.erase(f++);
@@ -370,9 +325,8 @@ void Socket::sendListDeleted(UserServer* user)
 
 	tDatagram datagram;
 	datagram.type = END_DATA;
-	this->sendDatagram(datagram);
+	this->frontEnd->sendDatagram(datagram);
 }
-
 
 void Socket::deleteFile(std::string filename)
 {
@@ -380,5 +334,22 @@ void Socket::deleteFile(std::string filename)
 
 	datagram.type = DELETE_TYPE;
 	strcpy(datagram.data, filename.c_str());
-	this->sendDatagram(datagram);
+	this->frontEnd->sendDatagram(datagram);
+}
+
+std::string Socket::waitNewServer()
+{
+	tDatagram datagram;
+	datagram = this->frontEnd->receiveDatagram();
+	
+	return std::string(datagram.data);
+}
+
+int Socket::connectNewServer(std::string host, int port)
+{
+	this->frontEnd->finish();
+	delete this->frontEnd;
+
+	this->frontEnd = new FrontEnd(SOCK_CLIENT);
+	return this->login_server(host, port);
 }

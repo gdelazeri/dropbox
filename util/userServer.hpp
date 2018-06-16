@@ -12,6 +12,8 @@ class UserServer
         std::string userid;
         std::list<File> files;
         std::list<std::pair<std::string, int>> deleted;
+        std::string address;
+        int port;
 
 		UserServer();
 

@@ -12,6 +12,15 @@
 #include <sys/inotify.h>
 #include "user.hpp"
 
+#include <stdio.h>
+#include <sys/types.h>
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <arpa/inet.h>
+
+#define PORT_FRONTEND 5000
+
 User* user = new User();
 
 void say(std::string message) 
@@ -39,7 +48,7 @@ void sendThread(Socket* senderSocket)
 	{
 		user->executeRequest(senderSocket);
 	}
-	senderSocket->finish();
+	senderSocket->frontEnd->finish();
 	delete senderSocket;
 }
 
@@ -50,7 +59,7 @@ void receiveThread(Socket* receiverSocket)
 	{
 		user->processRequest(receiverSocket);
 	}
-	receiverSocket->finish();
+	receiverSocket->frontEnd->finish();
 	delete receiverSocket;
 }
 
@@ -109,9 +118,57 @@ void shellThread(Socket* receiverSocket)
 	say("FIM");
 }
 
+/* Thread to call method to process requests and receive files */
+void frontEndThread(Socket* receiverSocket, Socket* senderSocket)
+{
+	// Socket *frontEndSocket = new Socket(SOCK_SERVER);
+	// frontEndSocket->createSocket(PORT_FRONTEND);
+	// while(user->logged_in)
+	// {
+	// 	std::cout << "waitNewServer" << std::endl;
+	// 	std::string newAddress = frontEndSocket->waitNewServer();
+	// 	std::cout << "Address: " << newAddress << std::endl;
+
+	// 	int pos = 0, posEnd;
+	// 	posEnd = newAddress.find("#");
+	// 	std::string host = newAddress.substr(pos, posEnd-pos);
+	// 	pos = posEnd+1;
+	// 	posEnd = newAddress.find("#", posEnd+1);
+	// 	int portS = atoi(newAddress.substr(pos, posEnd-pos).c_str());
+	// 	pos = posEnd+1;
+	// 	posEnd = newAddress.find("#", posEnd+1);
+	// 	int portR = atoi(newAddress.substr(pos, posEnd-pos).c_str());
+
+	// 	senderSocket->connectNewServer(host, portS);
+	// 	receiverSocket->connectNewServer(host, portR);
+	// }
+}
+
+std::string getIP(){
+	struct ifaddrs * ifAddrStruct = NULL, * ifa = NULL;
+    void * tmpAddrPtr = NULL;
+    getifaddrs(&ifAddrStruct);
+    for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
+        if (ifa ->ifa_addr->sa_family == AF_INET) {
+            char mask[INET_ADDRSTRLEN];
+            void* mask_ptr = &((struct sockaddr_in*) ifa->ifa_netmask)->sin_addr;
+            inet_ntop(AF_INET, mask_ptr, mask, INET_ADDRSTRLEN);
+            if (strcmp(mask, "255.0.0.0") != 0) {
+                tmpAddrPtr = &((struct sockaddr_in *) ifa->ifa_addr)->sin_addr;
+                char addressBuffer[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+                return std::string(addressBuffer);
+            }
+        }
+    }
+    if (ifAddrStruct != NULL)
+        freeifaddrs(ifAddrStruct);
+
+	return std::string();
+}
+
 int main(int argc, char* argv[])
 {
-
 	tDatagram datagram;
 
 	if(argc != 4)
@@ -129,35 +186,39 @@ int main(int argc, char* argv[])
 
 	// Send user
 	datagram.type = LOGIN;
-	strcpy(datagram.data, user->userid.c_str());
-	mainSocket->sendDatagram(datagram);
+	std::string loginInfo = user->userid + "#" + getIP() + "#" + "5000";
+	strcpy(datagram.data, loginInfo.c_str());
+	mainSocket->frontEnd->sendDatagram(datagram);
 
 	// Receive ports
-	datagram = mainSocket->receiveDatagram();
+	datagram = mainSocket->frontEnd->receiveDatagram();
 	if (datagram.type != NEW_PORTS) {
 		exit(0);
 	}
 	std::pair<int, int> ports = getPorts(datagram.data);
+	mainSocket->frontEnd->finish();
 
 	// Create sender and receiver communication
 	Socket* senderSocket = new Socket(SOCK_CLIENT);
 	Socket* receiverSocket = new Socket(SOCK_CLIENT);
 	senderSocket->login_server(argv[2], ports.first);
 	receiverSocket->login_server(argv[2], ports.second);
-	
+	std::cout << "Ports: " << ports.first << ports.second << std::endl;
+
 	// Create threads
 	std::thread receiver(receiveThread, receiverSocket);
 	std::thread sender(sendThread, senderSocket);
 	std::thread sync(syncThread, receiverSocket);
 	std::thread shell(shellThread, receiverSocket);
+	std::thread frontEnd(frontEndThread, receiverSocket, senderSocket);
 
+	frontEnd.detach();
 	receiver.detach();
 	sender.detach();
 	sync.detach();
 	shell.join();
 
 	user->save();
-	mainSocket->finish();
 
 	return 0;
 }

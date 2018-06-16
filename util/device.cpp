@@ -1,9 +1,11 @@
 #include "device.hpp"
 #include <iostream>
 
-Device::Device(UserServer* user)
+Device::Device(UserServer* user, std::string address, int port)
 {
 	this->user = user;
+	this->address = address;
+	this->port = port;
 }
 
 /* Set flag to connected and control user devices limit */

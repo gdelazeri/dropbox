@@ -15,6 +15,7 @@
 
 std::list<int> portsInUse;
 std::list<UserServer*> users;
+std::list<std::pair<std::string, int>> addresses;
 
 /* Utils */
 void say(std::string message){
@@ -26,7 +27,7 @@ void sendThread(Socket* socket, Device* device)
 	tDatagram datagram;
 	while(device->connected)
 	{
-		datagram = socket->receiveDatagram();
+		datagram = socket->frontEnd->receiveDatagram();
 		switch (datagram.type)
 		{
 			case GET_FILE_TYPE: {
@@ -52,7 +53,7 @@ void sendThread(Socket* socket, Device* device)
 		}
 	}
 
-	socket->finish();
+	socket->frontEnd->finish();
 	portsInUse.remove(socket->port);
 	delete socket;
 }
@@ -63,7 +64,8 @@ void receiveThread(Socket* socket, Device* device)
 	
 	while(device->connected)
 	{
-		datagram = socket->receiveDatagram();
+		datagram = socket->frontEnd->receiveDatagram();
+		std::cout << "RECEIVE!";
 		switch (datagram.type)
 		{
 			case BEGIN_FILE_TYPE: {
@@ -90,14 +92,33 @@ void receiveThread(Socket* socket, Device* device)
 
 			case CLOSE:
 				device->disconnect();
+				for (std::list<std::pair<std::string, int>>::iterator it = addresses.begin(); it != addresses.end(); ++it) {
+					if (it->first == device->address && it->second == device->port)
+						addresses.erase(it++);
+				}
 				break;
 		}
 	}
 
-	socket->finish();
+	socket->frontEnd->finish();
 	portsInUse.remove(socket->port);
 	delete socket;
 	say("Logout: " + device->user->userid);
+}
+
+void notifyClientsThread(){
+	// Socket *frontEndSocket = new Socket(SOCK_CLIENT);
+
+	for (std::list<UserServer*>::iterator it = users.begin(); it != users.end(); ++it)
+    {
+		if ((*it)->devices > 0)
+		{
+			// frontEndSocket->login_server();
+
+
+			// frontEndSocket->frontEnd->finish();
+		}
+	}
 }
 
 UserServer* searchUser(std::string userid)
@@ -135,16 +156,24 @@ int main(int argc, char* argv[])
 	while(true) 
 	{
 		UserServer* user = new UserServer();
-		datagram = mainSocket->receiveDatagram();
+		datagram = mainSocket->frontEnd->receiveDatagram();
 
 		if (datagram.type == LOGIN)
 		{
-			user = searchUser(std::string(datagram.data));
+			std::string loginInfo = std::string(datagram.data);
+			user = searchUser(getByHashString(loginInfo, 0));
 			say("Login: " + user->userid);
+
 			saveUsersServer(users);
-			Device* newDevice = new Device(user);
+
+			Device* newDevice = new Device(user, getByHashString(loginInfo, 1), atoi(getByHashString(loginInfo, 2).c_str()));
 
 			if (newDevice->connect()) {
+				// addresses.push_back(std::make_pair(newDevice->address, newDevice->port));
+				// for (std::list<std::pair<std::string, int>>::iterator it = addresses.begin(); it != addresses.end(); ++it) {
+				// 	std::cout << it->first << " -> " << it->second << std::endl;
+				// }
+
 				Socket* receiverSocket = new Socket(SOCK_SERVER);
 				Socket* senderSocket = new Socket(SOCK_SERVER);
 
@@ -152,14 +181,23 @@ int main(int argc, char* argv[])
 				int portSender = createNewPort(portsInUse);
 				receiverSocket->createSocket(portReceiver);
 				senderSocket->createSocket(portSender);
+				std::cout << "Ports: " << portReceiver << portSender << std::endl;
 
 				std::string ports = std::to_string(portReceiver)+std::to_string(portSender);
 				datagram.type = NEW_PORTS;
 				strcpy(datagram.data, (char *) ports.c_str());
-				mainSocket->sendDatagram(datagram);
+				mainSocket->frontEnd->sendDatagram(datagram);
 
 				std::thread rcv(receiveThread, receiverSocket, newDevice);
 				std::thread snd(sendThread, senderSocket, newDevice);
+
+				// getchar();
+				// Socket *socketNotify = new Socket(SOCK_CLIENT);
+				// socketNotify->login_server(user->address, user->port);
+				// tDatagram datagram;
+				// strcpy(datagram.data, "aopsdkopsakdopsakdopsa");
+				// socketNotify->frontEnd->sendDatagram(datagram);
+				// getchar();
 				
 				rcv.detach();	
 				snd.detach();
@@ -167,7 +205,7 @@ int main(int argc, char* argv[])
 			else {
 				datagram.type = ERROR;
 				strcpy(datagram.data, "Too many devices for this user. Try again later.");
-				mainSocket->sendDatagram(datagram);
+				mainSocket->frontEnd->sendDatagram(datagram);
 			}
 		}
 	}

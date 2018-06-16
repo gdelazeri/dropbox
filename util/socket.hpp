@@ -16,6 +16,7 @@
 #include <fstream>
 #include <cstddef>
 #include "dropboxUtil.hpp"
+#include "frontEnd.hpp"
 
 class Socket
 {
@@ -25,16 +26,17 @@ class Socket
 
 	public:
 		int port;
-		struct sockaddr_in socketAddress;
-		struct sockaddr_in from;
+		// struct sockaddr_in socketAddress;
+		// struct sockaddr_in from;
+		FrontEnd *frontEnd;
 
 		Socket(int side);
 
 		int createSocket(int port);
 		int login_server(std::string host, int port);
 
-		bool sendDatagram(tDatagram datagram);
-		tDatagram receiveDatagram();
+		// bool sendDatagram(tDatagram datagram);
+		// tDatagram receiveDatagram();
 		
 		std::string get_file(std::string filename, std::string path);
 		bool send_file(std::string pathname, std::string modificationTime, std::string accessTime, std::string creationTime);
@@ -48,10 +50,13 @@ class Socket
 
 		void deleteFile(std::string filename);
 
-		bool sendAck();
-		bool waitAck();
+		// bool sendAck();
+		// bool waitAck();
 
-		void finish();
+		// void finish();
 		bool close_session();
+
+		std::string waitNewServer();
+		int connectNewServer(std::string host, int port);
 };
 #endif

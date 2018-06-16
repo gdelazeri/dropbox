@@ -1,0 +1,14 @@
+#user
+gui
+#files
+server/sync_dir_gui/test1.txt
+2018/05/15 03:32:48
+2018/05/15 03:32:48
+2018/05/15 03:32:48
+#end
+#user
+gui#10.0.2.15
+#end
+#user
+gui#10.0.2.15#5000
+#end
