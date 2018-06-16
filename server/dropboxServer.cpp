@@ -28,7 +28,6 @@ void sendThread(Socket* socket, Device* device)
 	while(device->connected)
 	{
 		datagram = socket->frontEnd->receiveDatagram();
-		std::cout << "sendThread port: " << socket->frontEnd->port << std::endl;
 		switch (datagram.type)
 		{
 			case GET_FILE_TYPE: {
@@ -70,7 +69,6 @@ void receiveThread(Socket* socket, Device* device)
 	while(device->connected)
 	{
 		datagram = socket->frontEnd->receiveDatagram();
-		std::cout << "receiveThread in port: " << socket->frontEnd->port << std::endl;
 		switch (datagram.type)
 		{
 			case BEGIN_FILE_TYPE: {
