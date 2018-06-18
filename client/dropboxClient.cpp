@@ -142,28 +142,7 @@ void frontEndThread(Socket* receiverSocket, Socket* senderSocket)
 	}
 }
 
-std::string getIP(){
-	struct ifaddrs * ifAddrStruct = NULL, * ifa = NULL;
-    void * tmpAddrPtr = NULL;
-    getifaddrs(&ifAddrStruct);
-    for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
-        if (ifa ->ifa_addr->sa_family == AF_INET) {
-            char mask[INET_ADDRSTRLEN];
-            void* mask_ptr = &((struct sockaddr_in*) ifa->ifa_netmask)->sin_addr;
-            inet_ntop(AF_INET, mask_ptr, mask, INET_ADDRSTRLEN);
-            if (strcmp(mask, "255.0.0.0") != 0) {
-                tmpAddrPtr = &((struct sockaddr_in *) ifa->ifa_addr)->sin_addr;
-                char addressBuffer[INET_ADDRSTRLEN];
-                inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
-                return std::string(addressBuffer);
-            }
-        }
-    }
-    if (ifAddrStruct != NULL)
-        freeifaddrs(ifAddrStruct);
 
-	return std::string();
-}
 
 int main(int argc, char* argv[])
 {

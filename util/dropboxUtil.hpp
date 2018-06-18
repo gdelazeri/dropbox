@@ -6,6 +6,12 @@
 #include <fstream>
 #include <iostream>
 #include <algorithm>
+#include <stdio.h>
+#include <sys/types.h>
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <arpa/inet.h>
 
 /* Constants */
 #define SERVER_PORT 4000
@@ -32,6 +38,8 @@
 #define MODIFICATION_TIME 'T'
 #define DELETE_TYPE 'D'
 #define DELETED_FILE 'X'
+#define BACKUP 'B'
+#define LIVE_SIGNAL 'V'
 
 /* Sizes */
 #define BUFFER_SIZE 6000
@@ -61,5 +69,6 @@ int createNewPort(std::list<int> portsInUse);
 std::pair<int, int> getPorts(char* data);
 std::string getCurrentTime();
 std::string getByHashString(std::string hashString, int elementIndex);
+std::string getIP();
 
 #endif

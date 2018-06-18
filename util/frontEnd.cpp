@@ -149,3 +149,58 @@ void FrontEnd::finish()
 {
 	close(this->socketFd);
 }
+
+bool FrontEnd::sendDatagramToAddress(tDatagram datagram, std::string hostClient, int portClient)
+{
+	int n;
+	char* buffer = (char*) calloc(1, BUFFER_SIZE);
+
+	memcpy(buffer, &datagram, sizeof(datagram));
+	if (this->side == SOCK_SERVER) {
+		struct hostent *server;
+		server = gethostbyname(hostClient.c_str());
+		from.sin_addr = *((struct in_addr *) server->h_addr);
+		from.sin_port = htons(portClient);
+		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &from, sizeof(struct sockaddr));
+	}
+	else {
+		return false;
+	}
+	if (n < 0)
+	{
+		std::cout << "ERROR: sendto";
+		return false;
+	}
+
+	if (!this->waitAck())
+	{
+		std::cout << "ERROR: ack miss";
+		return false;
+	}
+	
+	return true;
+}
+
+tDatagram FrontEnd::receiveDatagramWithTimeout(int secs)
+{
+	tDatagram datagram;
+	socklen_t length = sizeof(struct sockaddr_in);
+	char* buffer = (char*) calloc(1, BUFFER_SIZE);
+
+	struct timeval timeout;
+	timeout.tv_sec = secs;
+	timeout.tv_usec = 0;
+	if (setsockopt (this->socketFd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+		perror("setsockopt failed\n");
+
+	int n = recvfrom(this->socketFd, buffer, BUFFER_SIZE, 0, (struct sockaddr *) &from, &length);
+	if (n < 0)
+	{
+		datagram.type = ERROR;
+		return datagram;
+	}
+	memcpy(&datagram, buffer, sizeof(datagram));
+	this->sendAck();
+
+	return datagram;
+}

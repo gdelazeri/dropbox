@@ -10,12 +10,20 @@
 #include <list>
 #include <algorithm>
 #include <string.h>
+#include <string>
 #include "socket.hpp"
 #include "device.hpp"
 
 std::list<int> portsInUse;
 std::list<UserServer*> users;
 std::list<std::pair<std::string, int>> addresses;
+std::list<std::pair<std::string, int>> serversAddresses;
+
+int primary = 0;
+int commPort = 0;
+
+std::string primaryIP;
+int primaryPort = 0;
 
 /* Utils */
 void say(std::string message){
@@ -109,6 +117,67 @@ void receiveThread(Socket* socket, Device* device)
 	say("Logout: " + device->user->userid);
 }
 
+void liveSignalThread(){
+	printf("LiveSignalThread, press any button to continue...\n");
+	getchar();
+	// Create socket for communication between servers
+	Socket *serversComm = new Socket(SOCK_SERVER);
+	serversComm->createSocket(commPort);
+
+	// Send backup IP and PORT to primary server
+	if (primary == 0) {
+		printf("B: Sending my IP and PORT to primary\n");
+		tDatagram datagram;
+		datagram.type = BACKUP;
+		strcpy(datagram.data, (getIP() + "#" + std::to_string(commPort)).c_str());
+		serversComm->frontEnd->sendDatagramToAddress(datagram, primaryIP, primaryPort);
+	}
+
+	// Wait for live signal from primay server
+	while (primary == 0) {
+		printf("B: Waiting for primary live signal\n");
+		tDatagram datagram;
+		datagram = serversComm->frontEnd->receiveDatagramWithTimeout(3);
+		if (datagram.type == ERROR) {
+			// TODO: election!!!!!!!!!!!!!!!!!
+			printf("TODO: election!!!!!!!!!!!!!!!!!\n");
+			getchar();
+			// primary = 1;
+		} else {
+			printf("B: And primary is alive!\n");
+		}
+	}
+
+	while (primary == 1) {
+		printf("P: Waiting for new backup address\n");
+		// Wait for new backup address
+		tDatagram datagram;
+		datagram = serversComm->frontEnd->receiveDatagramWithTimeout(2);
+		if (datagram.type == BACKUP) {
+			std::string backupHost = getByHashString(std::string(datagram.data), 0);
+			int backupPort = atoi(getByHashString(std::string(datagram.data), 1).c_str());
+			std::cout << "Backup Address: " << backupHost << ", " << backupPort << std::endl;
+			bool found = false;
+			for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it) {
+				if (it->first == backupHost && it->second == backupPort)
+					found = true;
+			}
+			if (!found)
+				serversAddresses.push_back(std::make_pair(backupHost, backupPort));
+		}
+
+		printf("P: Sending live signal to all backup servers\n");
+		// Send live signal to all backup servers
+		for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it) {
+			tDatagram datagram;
+			datagram.type = LIVE_SIGNAL;
+			// TODO: Aqui podemos enviar no datagrama uma lista com todos os servidores backups
+			serversComm->frontEnd->sendDatagramToAddress(datagram, it->first, it->second);
+		}
+	}
+
+}
+
 void notifyClientsThread(){
 	//while(!primary)
 
@@ -138,18 +207,36 @@ UserServer* searchUser(std::string userid)
 	return newUserServer;
 }
 
+
 int main(int argc, char* argv[])
 {
 	tDatagram datagram;
 	users = loadUsersServer();
 
-	if(argc != 1)
+	if(argc < 3)
 	{
-		std::cout << "Usage:\n\t ./dropboxServer\n";
+		std::cout << "Usage:\n\t ./dropboxServer port type(--primary/--backup) <primaryIP> <portIP>\n";
 		exit(1);
 	}
 
-    Socket* mainSocket = new Socket(SOCK_SERVER);
+	commPort = atoi(argv[1]);
+	if (strcmp(argv[2], "--primary") == 0) {
+		primary = 1;	
+	} else if (argc == 5){
+		primary = 0;
+		primaryIP = argv[3];
+		primaryPort = atoi(argv[4]);
+	} else {
+		std::cout << "Usage:\n\t ./dropboxServer port type(--primary/--backup) <primaryIP> <portIP>\n";
+		exit(1);
+	}
+
+	std::thread servers(liveSignalThread);
+	servers.detach();
+
+	while (primary == 0);
+
+    Socket *mainSocket = new Socket(SOCK_SERVER);
 	mainSocket->createSocket(SERVER_PORT);
 	say("Server Online");
 
@@ -170,9 +257,6 @@ int main(int argc, char* argv[])
 
 			if (newDevice->connect()) {
 				addresses.push_back(std::make_pair(newDevice->address, newDevice->port));
-				for (std::list<std::pair<std::string, int>>::iterator it = addresses.begin(); it != addresses.end(); ++it) {
-					std::cout << it->first << " -> " << it->second << std::endl;
-				}
 
 				Socket* receiverSocket = new Socket(SOCK_SERVER);
 				Socket* senderSocket = new Socket(SOCK_SERVER);
