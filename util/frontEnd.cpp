@@ -199,7 +199,7 @@ tDatagram FrontEnd::receiveDatagramWithTimeout(int secs)
 		return datagram;
 	}
 	memcpy(&datagram, buffer, sizeof(datagram));
-	this->sendAck();
+	//this->sendAck();
 
 	return datagram;
 }

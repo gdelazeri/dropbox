@@ -127,7 +127,7 @@ void liveSignalThread(){
 
 	// Send backup IP and PORT to primary server
 	if (primary == 0) {
-		printf("B: Sending my IP and PORT to primary\n");
+		//printf("B: Sending my IP and PORT to primary\n");
 		tDatagram datagram;
 		datagram.type = BACKUP;
 		strcpy(datagram.data, (getIP() + "#" + std::to_string(commPort)).c_str());
@@ -165,8 +165,9 @@ void liveSignalThread(){
 				electionTime = false;
 			}	
 		} else if (datagram.type == ELECTION_TIME) {	
+			electionTime = true;
 			int	serverPort = atoi(datagram.data);
-			
+			//std::cout << "Server port: " << serverPort << " minha porta: " << commPort << "\n";
 			if (serverPort < commPort) {
 				datagram.type = ELECTION_TIME;
 				std::string commPortTemp = std::to_string(commPort);
@@ -189,7 +190,8 @@ void liveSignalThread(){
 
 			electionTime = false;
 		} else {
-			// printf("B: And primary is alive!\n");
+			//std::cout << "DATAGRAM: " << datagram.type << "\n";
+			//printf("B: And primary is alive!\n");
 			std::string datagramData = std::string(datagram.data);
 			int numberOfServers = std::count(datagramData.begin(), datagramData.end(), '#');
 			serversAddresses.clear();
