@@ -61,6 +61,7 @@
 #define DELETE_REQUEST 7
 #define UPLOAD_REPLICATION 8
 #define LOGIN_REPLICATION 9
+#define DELETE_REPLICATION 10
 
 /* Struct that defines the Datagram */
 typedef struct tDatagram

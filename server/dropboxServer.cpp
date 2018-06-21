@@ -125,7 +125,9 @@ void receiveThread(Socket* socket, Device* device)
 				device->user->removeFile(pathname);
 				device->user->deleted.push_back(std::make_pair(std::string(datagram.data), 2));
 				saveUsersServer(users);
-				// TODO: Adiciona na lista de arquivos a serem deletados o nome do file, id do user
+				replicationMutex.lock();
+				replicationRequests.push(Request(DELETE_REPLICATION, device->user->userid, pathname));
+				replicationMutex.unlock();
 				break;
 			}
 
@@ -237,7 +239,12 @@ void liveSignalThread(){
 			Device* newDevice = new Device(user, getByHashString(datagramData, 1, "#"), atoi(getByHashString(datagramData, 2, "#").c_str()));
 			newDevice->connect();
 			devices.push_back(newDevice);
-			// addresses.push_back(std::make_pair(user->userid, newDevice->address + "#" + newDevice->port));
+		} else if (datagram.type == DELETE_TYPE) {
+			serversComm->frontEnd->sendAck();
+			std::string datagramData = std::string(datagram.data);
+			UserServer* user = new UserServer();
+			user = searchUser(getByHashString(datagramData, 0, "#"));
+			user->removeFile(getByHashString(datagramData, 1, "#"));
 		} else {
 			std::string datagramData = std::string(datagram.data);
 			int numberOfServers = std::count(datagramData.begin(), datagramData.end(), '#');
@@ -309,6 +316,18 @@ void replicationThread() {
 						tDatagram datagram;
 						datagram.type = LOGIN;
 						strcpy(datagram.data, (req.argument + "#" + req.argument2 + "#" + req.argument3).c_str());
+						sendingReplicationMutex.lock();
+						replicationSocket->frontEnd->sendDatagram(datagram);
+						sendingReplicationMutex.unlock();
+					}
+					break;
+
+				case DELETE_REPLICATION:
+					for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it) {
+						replicationSocket->login_server(it->first, it->second);
+						tDatagram datagram;
+						datagram.type = DELETE_TYPE;
+						strcpy(datagram.data, (req.argument + "#" + req.argument2).c_str());
 						sendingReplicationMutex.lock();
 						replicationSocket->frontEnd->sendDatagram(datagram);
 						sendingReplicationMutex.unlock();
