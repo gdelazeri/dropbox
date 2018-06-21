@@ -14,6 +14,8 @@
 #include <arpa/inet.h>
 
 /* Constants */
+#define REPLICATION_PORT 2000
+#define PORT_FRONTEND 3000
 #define SERVER_PORT 4000
 #define SERVER_NAME "[server@dropbox] "
 #define CLIENT_NAME "[client@dropbox] "
@@ -42,6 +44,8 @@
 #define LIVE_SIGNAL 'V'
 #define ELECTION_TIME 'H'
 #define NEW_PRIMARY 'J'
+#define BEGIN_FILE_TYPE_REPLICATION 'K'
+#define BEGIN_FILE_TYPE_REPLICATION 'K'
 
 /* Sizes */
 #define BUFFER_SIZE 6000
@@ -55,6 +59,8 @@
 #define DOWNLOAD_SYNC_REQUEST 5
 #define UPLOAD_SYNC_REQUEST 6
 #define DELETE_REQUEST 7
+#define UPLOAD_REPLICATION 8
+#define LOGIN_REPLICATION 9
 
 /* Struct that defines the Datagram */
 typedef struct tDatagram

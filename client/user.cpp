@@ -45,7 +45,7 @@ void User::executeRequest(Socket* socket)
         Request req = this->requestsToSend.front();
 
         if (req.type == UPLOAD_REQUEST){
-            socket->send_file(req.argument, std::string(), std::string(), std::string());
+            socket->send_file(req.argument, std::string(), std::string(), std::string(), std::string());
         }
         if (req.type == UPLOAD_SYNC_REQUEST){
             File uploadedFile;
@@ -53,7 +53,7 @@ void User::executeRequest(Socket* socket)
             uploadedFile.last_modified = req.argument2;
             uploadedFile.access_time = req.argument3;
             uploadedFile.creation_time = req.argument4;
-            socket->send_file(this->getFolderPath() + "/" + req.argument, req.argument2, req.argument3, req.argument4);
+            socket->send_file(this->getFolderPath() + "/" + req.argument, req.argument2, req.argument3, req.argument4, std::string());
             this->addFile(uploadedFile);
             this->updateSyncTime();
         }

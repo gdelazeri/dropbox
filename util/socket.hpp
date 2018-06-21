@@ -39,7 +39,7 @@ class Socket
 		// tDatagram receiveDatagram();
 		
 		std::string get_file(std::string filename, std::string path);
-		bool send_file(std::string pathname, std::string modificationTime, std::string accessTime, std::string creationTime);
+		bool send_file(std::string pathname, std::string modificationTime, std::string accessTime, std::string creationTime, std::string userId);
 		std::string receive_file(std::string filename);
 		
 		std::list<File> list_server();

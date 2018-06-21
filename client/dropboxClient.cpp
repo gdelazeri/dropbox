@@ -11,15 +11,12 @@
 #include <sys/types.h>
 #include <sys/inotify.h>
 #include "user.hpp"
-
 #include <stdio.h>
 #include <sys/types.h>
 #include <ifaddrs.h>
 #include <netinet/in.h>
 #include <string.h>
 #include <arpa/inet.h>
-
-#define PORT_FRONTEND 5000
 
 User* user = new User();
 
@@ -127,22 +124,14 @@ void frontEndThread(Socket* receiverSocket, Socket* senderSocket)
 	{
 		std::string newAddress = frontEndSocket->waitNewServer();
 
-		int pos = 0, posEnd;
-		posEnd = newAddress.find("#");
-		std::string host = newAddress.substr(pos, posEnd-pos);
-		pos = posEnd+1;
-		posEnd = newAddress.find("#", posEnd+1);
-		int portS = atoi(newAddress.substr(pos, posEnd-pos).c_str());
-		pos = posEnd+1;
-		posEnd = newAddress.find("#", posEnd+1);
-		int portR = atoi(newAddress.substr(pos, posEnd-pos).c_str());
+		std::string host = getByHashString(newAddress, 0, "#");
+		int portS = atoi(getByHashString(newAddress, 1, "#").c_str());
+		int portR = atoi(getByHashString(newAddress, 2, "#").c_str());
 
 		senderSocket->connectNewServer(host, portS);
 		receiverSocket->connectNewServer(host, portR);
 	}
 }
-
-
 
 int main(int argc, char* argv[])
 {
@@ -163,7 +152,7 @@ int main(int argc, char* argv[])
 
 	// Send user
 	datagram.type = LOGIN;
-	std::string loginInfo = user->userid + "#" + getIP() + "#" + "5000";
+	std::string loginInfo = user->userid + "#" + getIP() + "#" + "3000";
 	strcpy(datagram.data, loginInfo.c_str());
 	mainSocket->frontEnd->sendDatagram(datagram);
 
@@ -180,7 +169,6 @@ int main(int argc, char* argv[])
 	Socket* receiverSocket = new Socket(SOCK_CLIENT);
 	senderSocket->login_server(argv[2], ports.first);
 	receiverSocket->login_server(argv[2], ports.second);
-	std::cout << "Ports: " << ports.first << ports.second << std::endl;
 
 	// Create threads
 	std::thread receiver(receiveThread, receiverSocket);

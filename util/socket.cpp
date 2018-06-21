@@ -101,7 +101,7 @@ int Socket::createSocket(int port)
 // 	return datagram;
 // }
 
-bool Socket::send_file(std::string pathname, std::string modificationTime, std::string accessTime, std::string creationTime)
+bool Socket::send_file(std::string pathname, std::string modificationTime, std::string accessTime, std::string creationTime, std::string userId)
 {
 	File fileHelper;
 	fileHelper.pathname = pathname;
@@ -119,9 +119,13 @@ bool Socket::send_file(std::string pathname, std::string modificationTime, std::
 	file.open(pathname.c_str(), std::ios::binary | std::ios::in);
 
 	// Send filename
-	datagram.type = BEGIN_FILE_TYPE;
-	strcpy(datagram.data, fileHelper.getFilename().c_str());
-
+	if (userId.empty()) {
+		datagram.type = BEGIN_FILE_TYPE;
+		strcpy(datagram.data, fileHelper.getFilename().c_str());
+	} else {
+		datagram.type = BEGIN_FILE_TYPE_REPLICATION;
+		strcpy(datagram.data, pathname.c_str());
+	}
 	this->frontEnd->sendDatagram(datagram);
 
 	// Send file
@@ -152,7 +156,6 @@ bool Socket::send_file(std::string pathname, std::string modificationTime, std::
 	else {
 		strcpy(datagram.data, (fileHelper.getTime('M') + "#" + fileHelper.getTime('A') + "#" + fileHelper.getTime('C')).c_str());
 	}
-		
 
 	this->frontEnd->sendDatagram(datagram);
 
@@ -341,7 +344,6 @@ std::string Socket::waitNewServer()
 {
 	tDatagram datagram;
 	datagram = this->frontEnd->receiveDatagram();
-	
 	return std::string(datagram.data);
 }
 

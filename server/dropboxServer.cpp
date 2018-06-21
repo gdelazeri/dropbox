@@ -12,12 +12,21 @@
 #include <string.h>
 #include <string>
 #include "socket.hpp"
+#include "request.hpp"
 #include "device.hpp"
+#include <queue>
+#include <mutex>
 
 std::list<int> portsInUse;
 std::list<UserServer*> users;
-std::list<std::pair<std::string, int>> addresses;
+std::list<Device*> devices;
+std::list<std::pair<std::string, std::string>> addresses;
 std::list<std::pair<std::string, int>> serversAddresses;
+std::queue<Request> replicationRequests;
+
+std::mutex primaryMutex;
+std::mutex replicationMutex;
+std::mutex sendingReplicationMutex;
 
 int primary = 0;
 int commPort = 0;
@@ -29,6 +38,23 @@ int primaryPort = 0;
 /* Utils */
 void say(std::string message){
 	std::cout << SERVER_NAME << message << "\n";
+}
+
+UserServer* searchUser(std::string userid)
+{
+	for (std::list<UserServer*>::iterator it = users.begin(); it != users.end(); ++it){
+    	if ((*it)->userid == userid)
+		{
+			(*it)->createDir();
+			return (*it);
+		}
+	}
+	UserServer* newUserServer = new UserServer();
+	newUserServer->userid = userid;
+	newUserServer->createDir();
+	users.push_back(newUserServer);
+
+	return newUserServer;
 }
 				
 void sendThread(Socket* socket, Device* device)
@@ -44,7 +70,7 @@ void sendThread(Socket* socket, Device* device)
 				std::string modificationTime = device->user->getFileTime(pathname, 'M');
 				std::string accessTime = device->user->getFileTime(pathname, 'A');
 				std::string creationTime = device->user->getFileTime(pathname, 'C');
-				socket->send_file(pathname, modificationTime, accessTime, creationTime);
+				socket->send_file(pathname, modificationTime, accessTime, creationTime, std::string());
 				break;
 			}
 
@@ -58,10 +84,10 @@ void sendThread(Socket* socket, Device* device)
 
 			case CLOSE:
 				device->disconnect();
-				for (std::list<std::pair<std::string, int>>::iterator it = addresses.begin(); it != addresses.end(); ++it) {
-					if (it->first == device->address && it->second == device->port)
-						addresses.erase(it++);
-				}
+				// for (std::list<std::pair<std::string, int>>::iterator it = addresses.begin(); it != addresses.end(); ++it) {
+				// 	if (it->first == device->address && it->second == device->port)
+				// 		addresses.erase(it++);
+				// }
 				break;
 		}
 	}
@@ -74,7 +100,6 @@ void sendThread(Socket* socket, Device* device)
 void receiveThread(Socket* socket, Device* device)
 {
 	tDatagram datagram;
-	
 	while(device->connected)
 	{
 		datagram = socket->frontEnd->receiveDatagram();
@@ -90,6 +115,11 @@ void receiveThread(Socket* socket, Device* device)
 				std::string accessTime = times.substr(pos, posEnd - pos);
 				std::string creationTime = times.substr(posEnd+1, times.length() - posEnd);
 				device->user->addFile(pathname, modificationTime, accessTime, creationTime);
+		
+				replicationMutex.lock();
+				replicationRequests.push(Request(UPLOAD_REPLICATION, device->user->userid, pathname, modificationTime, accessTime, creationTime));
+				replicationMutex.unlock();
+		
 				saveUsersServer(users);
 				break;
 			}
@@ -99,15 +129,16 @@ void receiveThread(Socket* socket, Device* device)
 				device->user->removeFile(pathname);
 				device->user->deleted.push_back(std::make_pair(std::string(datagram.data), 2));
 				saveUsersServer(users);
+				// TODO: Adiciona na lista de arquivos a serem deletados o nome do file, id do user
 				break;
 			}
 
 			case CLOSE:
 				device->disconnect();
-				for (std::list<std::pair<std::string, int>>::iterator it = addresses.begin(); it != addresses.end(); ++it) {
-					if (it->first == device->address && it->second == device->port)
-						addresses.erase(it++);
-				}
+				// for (std::list<std::pair<std::string, int>>::iterator it = addresses.begin(); it != addresses.end(); ++it) {
+				// 	if (it->first == device->address && it->second == device->port)
+				// 		addresses.erase(it++);
+				// }
 				break;
 		}
 	}
@@ -120,9 +151,7 @@ void receiveThread(Socket* socket, Device* device)
 
 void liveSignalThread(){
 	bool inElection = false;
-	
-	printf("LiveSignalThread, press any button to continue...\n");
-	getchar();
+
 	// Create socket for communication between servers
 	Socket *serversComm = new Socket(SOCK_SERVER);
 	serversComm->createSocket(commPort);
@@ -138,7 +167,7 @@ void liveSignalThread(){
 	// Wait for live signal from primay server
 	while (primary == 0) {	
 		tDatagram datagram;
-		datagram = serversComm->frontEnd->receiveDatagramWithTimeout(3);
+		datagram = serversComm->frontEnd->receiveDatagramWithTimeout(4);
 		
 		if (datagram.type == ERROR) {
 			// Check if the election is occuring
@@ -154,7 +183,9 @@ void liveSignalThread(){
 				for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it)
 					serversComm->frontEnd->sendDatagramToAddress(datagram, it->first, it->second);
 			} else if (inElection) {
+				primaryMutex.lock();
 				primary = 1;
+				primaryMutex.unlock();
 				std::cout << "I'm the new primary server!\n";
 				
 				// Send the server data (new primary) to all other backup servers
@@ -192,6 +223,29 @@ void liveSignalThread(){
 			}				
 
 			electionTime = false;
+		} else if (datagram.type == BEGIN_FILE_TYPE_REPLICATION) {
+			serversComm->frontEnd->sendAck();
+			std::string pathname = std::string(datagram.data);
+			std::string times = serversComm->receive_file(pathname);
+			std::string modificationTime = getByHashString(times, 0, "#");
+			std::string accessTime = getByHashString(times, 1, "#");
+			std::string creationTime = getByHashString(times, 2, "#");
+			std::string userid = getByHashString(getByHashString(pathname, 2, "_"), 0, "/");
+    		for (std::list<UserServer*>::iterator it = users.begin(); it != users.end(); ++it) {
+				if ((*it)->userid == userid)
+					(*it)->addFile(pathname, modificationTime, accessTime, creationTime);
+			}
+		} else if (datagram.type == LOGIN) {
+			serversComm->frontEnd->sendAck();
+			std::string datagramData = std::string(datagram.data);
+			UserServer* user = new UserServer();
+			user = searchUser(getByHashString(datagramData, 0, "#"));
+			say("Login: " + user->userid);
+			saveUsersServer(users);
+			Device* newDevice = new Device(user, getByHashString(datagramData, 1, "#"), atoi(getByHashString(datagramData, 2, "#").c_str()));
+			newDevice->connect();
+			devices.push_back(newDevice);
+			// addresses.push_back(std::make_pair(user->userid, newDevice->address + "#" + newDevice->port));
 		} else {
 			std::string datagramData = std::string(datagram.data);
 			int numberOfServers = std::count(datagramData.begin(), datagramData.end(), '#');
@@ -227,46 +281,80 @@ void liveSignalThread(){
 		for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it) {
 			tDatagram datagram;
 			datagram.type = LIVE_SIGNAL;
-			std::string addresses;
+			std::string addressesStr;
 			for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it) {
-				addresses = addresses + it->first + "*" + std::to_string(it->second) + "#";
+				addressesStr = addressesStr + it->first + "*" + std::to_string(it->second) + "#";
 			}
-			strcpy(datagram.data, addresses.c_str());
+			strcpy(datagram.data, addressesStr.c_str());
+
+			sendingReplicationMutex.lock();
 			serversComm->frontEnd->sendDatagramToAddress(datagram, it->first, it->second);
+			sendingReplicationMutex.unlock();
 		}
 	}
-
 }
 
-void notifyClientsThread(){
-	//while(!primary);
-
-	// Socket *frontEndSocket = new Socket(SOCK_CLIENT);
-	// for (std::list<std::pair<std::string, int>>::iterator it = addresses.begin(); it != addresses.end(); ++it) {
-	// 	frontEndSocket->login_server(it->first, it->second);
-	// 	tDatagram datagram;
-
-	// 	frontEndSocket->frontEnd->finish();
-	// }
-}
-
-UserServer* searchUser(std::string userid)
-{
-	for (std::list<UserServer*>::iterator it = users.begin(); it != users.end(); ++it){
-    	if ((*it)->userid == userid)
+void replicationThread() {
+	Socket *replicationSocket = new Socket(SOCK_CLIENT);
+	
+	while(1) {
+		replicationMutex.lock();
+		if (!replicationRequests.empty())
 		{
-			(*it)->createDir();
-			return (*it);
-		}
-	}
-	UserServer* newUserServer = new UserServer();
-	newUserServer->userid = userid;
-	newUserServer->createDir();
-	users.push_back(newUserServer);
+			Request req = replicationRequests.front();
+			switch (req.type) {
+				case UPLOAD_REPLICATION:
+					for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it) {
+						replicationSocket->login_server(it->first, it->second);
+						sendingReplicationMutex.lock();
+						replicationSocket->send_file(req.argument2, req.argument3, req.argument4, req.argument5, req.argument);
+						sendingReplicationMutex.unlock();
+					}
+					break;
 
-	return newUserServer;
+				case LOGIN_REPLICATION:
+					for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it) {
+						replicationSocket->login_server(it->first, it->second);
+						tDatagram datagram;
+						datagram.type = LOGIN;
+						strcpy(datagram.data, (req.argument + "#" + req.argument2 + "#" + req.argument3).c_str());
+						sendingReplicationMutex.lock();
+						replicationSocket->frontEnd->sendDatagram(datagram);
+						sendingReplicationMutex.unlock();
+					}
+					break;
+			}
+
+        	replicationRequests.pop();
+		}
+		replicationMutex.unlock();
+	}
+	delete replicationSocket;
 }
 
+void notifyClients(){
+	Socket *frontEndSocket = new Socket(SOCK_SERVER);
+	for (std::list<Device*>::iterator it = devices.begin(); it != devices.end(); ++it) {
+		Socket* receiverSocket = new Socket(SOCK_SERVER);
+		Socket* senderSocket = new Socket(SOCK_SERVER);
+
+		int portReceiver = createNewPort(portsInUse);
+		int portSender = createNewPort(portsInUse);
+		receiverSocket->createSocket(portReceiver);
+		senderSocket->createSocket(portSender);
+		// Device* newDevice = new Device((*it)->user, (*it)->address, (*it)->port);
+
+		std::thread rcv(receiveThread, receiverSocket, (*it));
+		std::thread snd(sendThread, senderSocket, (*it));
+		rcv.detach();	
+		snd.detach();
+
+		tDatagram datagram;
+		datagram.type = NEW_PRIMARY;
+		strcpy(datagram.data, (getIP() + "#" + std::to_string(portReceiver) + "#" + std::to_string(portSender)).c_str());
+		frontEndSocket->frontEnd->sendDatagramToAddress(datagram, (*it)->address, (*it)->port);
+	}
+}
 
 int main(int argc, char* argv[])
 {
@@ -281,7 +369,7 @@ int main(int argc, char* argv[])
 
 	commPort = atoi(argv[1]);
 	if (strcmp(argv[2], "--primary") == 0) {
-		primary = 1;	
+		primary = 1;
 	} else if (argc == 5){
 		primary = 0;
 		primaryIP = argv[3];
@@ -294,12 +382,23 @@ int main(int argc, char* argv[])
 	std::thread servers(liveSignalThread);
 	servers.detach();
 
-	while (primary == 0);
+	while (1){
+		primaryMutex.lock();
+		if (primary == 1){
+			primaryMutex.unlock();
+			break;
+		}
+		primaryMutex.unlock();
+	}
 
     Socket *mainSocket = new Socket(SOCK_SERVER);
 	mainSocket->createSocket(SERVER_PORT);
 	say("Server Online");
 
+	std::thread replication(replicationThread);
+	replication.detach();
+	
+	notifyClients();
 	while(true)
 	{
 		UserServer* user = new UserServer();
@@ -316,7 +415,9 @@ int main(int argc, char* argv[])
 			Device* newDevice = new Device(user, getByHashString(loginInfo, 1, "#"), atoi(getByHashString(loginInfo, 2, "#").c_str()));
 
 			if (newDevice->connect()) {
-				addresses.push_back(std::make_pair(newDevice->address, newDevice->port));
+				devices.push_back(newDevice);
+				// addresses.push_back(std::make_pair(newDevice->user->userid, newDevice->address + "#" + newDevice->port));
+				replicationRequests.push(Request(LOGIN_REPLICATION, user->userid, newDevice->address, newDevice->port));
 
 				Socket* receiverSocket = new Socket(SOCK_SERVER);
 				Socket* senderSocket = new Socket(SOCK_SERVER);
@@ -325,7 +426,6 @@ int main(int argc, char* argv[])
 				int portSender = createNewPort(portsInUse);
 				receiverSocket->createSocket(portReceiver);
 				senderSocket->createSocket(portSender);
-				std::cout << "Ports: " << portReceiver << portSender << std::endl;
 
 				std::string ports = std::to_string(portReceiver)+std::to_string(portSender);
 				datagram.type = NEW_PORTS;
@@ -334,14 +434,6 @@ int main(int argc, char* argv[])
 
 				std::thread rcv(receiveThread, receiverSocket, newDevice);
 				std::thread snd(sendThread, senderSocket, newDevice);
-
-				// getchar();
-				// Socket *socketNotify = new Socket(SOCK_CLIENT);
-				// socketNotify->login_server(user->address, user->port);
-				// tDatagram datagram;
-				// strcpy(datagram.data, "aopsdkopsakdopsakdopsa");
-				// socketNotify->frontEnd->sendDatagram(datagram);
-				// getchar();
 				
 				rcv.detach();	
 				snd.detach();

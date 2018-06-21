@@ -1,8 +1,8 @@
 #user
-gui
+dela
 #files
-server/sync_dir_gui/test1.txt
-2018/06/16 14:19:22
-2018/06/16 14:16:49
-2018/06/16 14:19:22
+server/sync_dir_dela/test1.txt
+2018/06/20 23:32:56
+2018/06/20 23:32:56
+2018/06/20 23:32:56
 #end

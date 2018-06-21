@@ -90,6 +90,38 @@ bool FrontEnd::sendDatagram(tDatagram datagram)
 	return true;
 }
 
+bool FrontEnd::sendDatagram2(tDatagram datagram)
+{
+	int n;
+	char* buffer = (char*) calloc(1, BUFFER_SIZE);
+
+	// printf("Antes de enviar\n");
+	memcpy(buffer, &datagram, sizeof(datagram));
+	if (this->side == SOCK_SERVER) {
+		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &from, sizeof(struct sockaddr));
+	}
+	else {
+		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &this->socketAddress, sizeof(struct sockaddr_in));
+		// std::cout << buffer << std::endl;
+	}
+	printf("Enviou essa merda: %d\n", n);
+	if (n < 0)
+	{
+		printf("Error: %s (%d)\n", strerror(errno), errno);
+		std::cout << "ERROR: sendto";
+		return false;
+	}
+	printf("Espera o ACK\n");
+	if (!this->waitAck())
+	{
+		std::cout << "ERROR: ack miss";
+		return false;
+	}
+	printf("Veio o ACK\n");
+	
+	return true;
+}
+
 tDatagram FrontEnd::receiveDatagram()
 {
 	tDatagram datagram;
@@ -132,11 +164,10 @@ bool FrontEnd::waitAck()
 {
 	socklen_t length = sizeof(struct sockaddr_in);
 	char* buffer = (char*) calloc(1, BUFFER_SIZE);
-
 	int n = recvfrom(this->socketFd, buffer, BUFFER_SIZE, 0, (struct sockaddr *) &from, &length);
 	if (n < 0)
 	{
-		// std::cout << "ERROR recvfrom";
+		std::cout << "ERROR recvfrom";
 		return false;
 	}
 	if (buffer[0] == ACK)
@@ -166,16 +197,11 @@ bool FrontEnd::sendDatagramToAddress(tDatagram datagram, std::string hostClient,
 	else {
 		return false;
 	}
+
 	if (n < 0)
 	{
-		std::cout << "ERROR: sendto";
 		return false;
 	}
-
-	// if (!this->waitAck())
-	// {
-	// 	return true;
-	// }
 	
 	return true;
 }
