@@ -40,6 +40,8 @@
 #define DELETED_FILE 'X'
 #define BACKUP 'B'
 #define LIVE_SIGNAL 'V'
+#define ELECTION_TIME 'H'
+#define NEW_PRIMARY 'J'
 
 /* Sizes */
 #define BUFFER_SIZE 6000
