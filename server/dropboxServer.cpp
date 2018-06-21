@@ -84,10 +84,6 @@ void sendThread(Socket* socket, Device* device)
 
 			case CLOSE:
 				device->disconnect();
-				// for (std::list<std::pair<std::string, int>>::iterator it = addresses.begin(); it != addresses.end(); ++it) {
-				// 	if (it->first == device->address && it->second == device->port)
-				// 		addresses.erase(it++);
-				// }
 				break;
 		}
 	}
@@ -135,10 +131,6 @@ void receiveThread(Socket* socket, Device* device)
 
 			case CLOSE:
 				device->disconnect();
-				// for (std::list<std::pair<std::string, int>>::iterator it = addresses.begin(); it != addresses.end(); ++it) {
-				// 	if (it->first == device->address && it->second == device->port)
-				// 		addresses.erase(it++);
-				// }
 				break;
 		}
 	}
@@ -167,7 +159,7 @@ void liveSignalThread(){
 	// Wait for live signal from primay server
 	while (primary == 0) {	
 		tDatagram datagram;
-		datagram = serversComm->frontEnd->receiveDatagramWithTimeout(4);
+		datagram = serversComm->frontEnd->receiveDatagramWithTimeout(3);
 		
 		if (datagram.type == ERROR) {
 			// Check if the election is occuring
@@ -267,7 +259,6 @@ void liveSignalThread(){
 		if (datagram.type == BACKUP) {
 			std::string backupHost = getByHashString(std::string(datagram.data), 0, "#");
 			int backupPort = atoi(getByHashString(std::string(datagram.data), 1, "#").c_str());
-			std::cout << "Backup Address: " << backupHost << ", " << backupPort << std::endl;
 			bool found = false;
 			for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it) {
 				if (it->first == backupHost && it->second == backupPort)
@@ -342,7 +333,6 @@ void notifyClients(){
 		int portSender = createNewPort(portsInUse);
 		receiverSocket->createSocket(portReceiver);
 		senderSocket->createSocket(portSender);
-		// Device* newDevice = new Device((*it)->user, (*it)->address, (*it)->port);
 
 		std::thread rcv(receiveThread, receiverSocket, (*it));
 		std::thread snd(sendThread, senderSocket, (*it));
@@ -416,7 +406,6 @@ int main(int argc, char* argv[])
 
 			if (newDevice->connect()) {
 				devices.push_back(newDevice);
-				// addresses.push_back(std::make_pair(newDevice->user->userid, newDevice->address + "#" + newDevice->port));
 				replicationRequests.push(Request(LOGIN_REPLICATION, user->userid, newDevice->address, newDevice->port));
 
 				Socket* receiverSocket = new Socket(SOCK_SERVER);

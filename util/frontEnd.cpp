@@ -90,38 +90,6 @@ bool FrontEnd::sendDatagram(tDatagram datagram)
 	return true;
 }
 
-bool FrontEnd::sendDatagram2(tDatagram datagram)
-{
-	int n;
-	char* buffer = (char*) calloc(1, BUFFER_SIZE);
-
-	// printf("Antes de enviar\n");
-	memcpy(buffer, &datagram, sizeof(datagram));
-	if (this->side == SOCK_SERVER) {
-		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &from, sizeof(struct sockaddr));
-	}
-	else {
-		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &this->socketAddress, sizeof(struct sockaddr_in));
-		// std::cout << buffer << std::endl;
-	}
-	printf("Enviou essa merda: %d\n", n);
-	if (n < 0)
-	{
-		printf("Error: %s (%d)\n", strerror(errno), errno);
-		std::cout << "ERROR: sendto";
-		return false;
-	}
-	printf("Espera o ACK\n");
-	if (!this->waitAck())
-	{
-		std::cout << "ERROR: ack miss";
-		return false;
-	}
-	printf("Veio o ACK\n");
-	
-	return true;
-}
-
 tDatagram FrontEnd::receiveDatagram()
 {
 	tDatagram datagram;
@@ -225,7 +193,6 @@ tDatagram FrontEnd::receiveDatagramWithTimeout(int secs)
 		return datagram;
 	}
 	memcpy(&datagram, buffer, sizeof(datagram));
-	//this->sendAck();
 
 	return datagram;
 }

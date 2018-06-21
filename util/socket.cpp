@@ -1,7 +1,5 @@
 #include "socket.hpp"
 
-// struct sockaddr_in from;
-
 Socket::Socket(int side)
 {
 	this->frontEnd = new FrontEnd(side);
@@ -17,89 +15,6 @@ int Socket::createSocket(int port)
 {
 	return this->frontEnd->create(port);
 }
-
-// bool Socket::sendAck()
-// {
-// 	int n;
-// 	char* buffer = (char*) calloc(1, BUFFER_SIZE);
-// 	buffer[0] = ACK;
-
-// 	if (this->side == SOCK_SERVER)
-// 		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &from, sizeof(struct sockaddr));
-// 	else
-// 		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &this->socketAddress, sizeof(struct sockaddr_in));
-
-// 	if (n < 0)
-// 	{
-// 		std::cout << "ERROR sendto";
-// 		return false;
-// 	}
-// 	return true;
-// }
-
-// bool Socket::waitAck()
-// {
-// 	socklen_t length = sizeof(struct sockaddr_in);
-// 	char* buffer = (char*) calloc(1, BUFFER_SIZE);
-
-// 	int n = recvfrom(this->socketFd, buffer, BUFFER_SIZE, 0, (struct sockaddr *) &from, &length);
-// 	if (n < 0)
-// 	{
-// 		std::cout << "ERROR recvfrom";
-// 		return false;
-// 	}
-// 	if (buffer[0] == ACK)
-// 		return true;
-	
-// 	return false;
-// }
-
-
-// bool Socket::sendDatagram(tDatagram datagram)
-// {
-// 	int n;
-// 	char* buffer = (char*) calloc(1, BUFFER_SIZE);
-
-// 	memcpy(buffer, &datagram, sizeof(datagram));
-// 	if (this->side == SOCK_SERVER) {
-// 		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &from, sizeof(struct sockaddr));
-// 	}
-// 	else {
-// 		n = sendto(this->socketFd, buffer, BUFFER_SIZE, 0, (const struct sockaddr *) &this->socketAddress, sizeof(struct sockaddr_in));
-// 	}
-// 	if (n < 0)
-// 	{
-// 		std::cout << "ERROR: sendto";
-// 		return false;
-// 	}
-
-// 	if (!this->waitAck())
-// 	{
-// 		std::cout << "ERROR: ack miss";
-// 		return false;
-// 	}
-	
-// 	return true;
-// }
-
-// tDatagram Socket::receiveDatagram()
-// {
-// 	tDatagram datagram;
-// 	socklen_t length = sizeof(struct sockaddr_in);
-// 	char* buffer = (char*) calloc(1, BUFFER_SIZE);
-
-// 	int n = recvfrom(this->socketFd, buffer, BUFFER_SIZE, 0, (struct sockaddr *) &from, &length);
-// 	if (n < 0)
-// 	{
-// 		std::cout << "ERROR: recvfrom";
-// 		datagram.type = ERROR;
-// 		return datagram;
-// 	}
-// 	memcpy(&datagram, buffer, sizeof(datagram));
-// 	this->frontEnd->sendAck();
-
-// 	return datagram;
-// }
 
 bool Socket::send_file(std::string pathname, std::string modificationTime, std::string accessTime, std::string creationTime, std::string userId)
 {
@@ -211,11 +126,6 @@ bool Socket::close_session()
 	datagram.type = CLOSE;
 	return this->frontEnd->sendDatagram(datagram);
 }
-
-// void Socket::finish()
-// {
-// 	close(this->socketFd);
-// }
 
 std::list<File> Socket::list_server()
 {

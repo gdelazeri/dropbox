@@ -34,7 +34,6 @@ class FrontEnd
 		int login(std::string host, int port);
 
 		bool sendDatagram(tDatagram datagram);
-		bool sendDatagram2(tDatagram datagram);
 		bool sendDatagramToAddress(tDatagram datagram, std::string hostClient, int portClient);
 		tDatagram receiveDatagram();
 		tDatagram receiveDatagramWithTimeout(int miliseconds);
