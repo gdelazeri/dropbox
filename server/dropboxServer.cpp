@@ -179,7 +179,7 @@ void liveSignalThread(){
 }
 
 void notifyClientsThread(){
-	//while(!primary)
+	//while(!primary);
 
 	// Socket *frontEndSocket = new Socket(SOCK_CLIENT);
 	// for (std::list<std::pair<std::string, int>>::iterator it = addresses.begin(); it != addresses.end(); ++it) {
