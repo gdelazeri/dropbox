@@ -136,7 +136,7 @@ bool FrontEnd::waitAck()
 	int n = recvfrom(this->socketFd, buffer, BUFFER_SIZE, 0, (struct sockaddr *) &from, &length);
 	if (n < 0)
 	{
-		std::cout << "ERROR recvfrom";
+		// std::cout << "ERROR recvfrom";
 		return false;
 	}
 	if (buffer[0] == ACK)
@@ -172,11 +172,10 @@ bool FrontEnd::sendDatagramToAddress(tDatagram datagram, std::string hostClient,
 		return false;
 	}
 
-	if (!this->waitAck())
-	{
-		std::cout << "ERROR: ack miss";
-		return false;
-	}
+	// if (!this->waitAck())
+	// {
+	// 	return true;
+	// }
 	
 	return true;
 }

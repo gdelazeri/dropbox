@@ -136,7 +136,7 @@ void liveSignalThread(){
 
 	// Wait for live signal from primay server
 	while (primary == 0) {	
-		printf("B: Waiting for primary live signal\n");
+		// printf("B: Waiting for primary live signal\n");
 		tDatagram datagram;
 		datagram = serversComm->frontEnd->receiveDatagramWithTimeout(3);
 		
@@ -177,8 +177,8 @@ void liveSignalThread(){
 			}
 		} else if (datagram.type == NEW_PRIMARY) {
 			// Change primary server IP and Port for the new primary server data
-			primaryIP = getByHashString(std::string(datagram.data), 0);
-			primaryPort = atoi(getByHashString(std::string(datagram.data), 1).c_str());
+			primaryIP = getByHashString(std::string(datagram.data), 0, "#");
+			primaryPort = atoi(getByHashString(std::string(datagram.data), 1, "#").c_str());
 
 			std::cout << "We have a new primary server, opperating in address " << primaryIP << " and port " << primaryPort << ".\n";
 
@@ -189,22 +189,32 @@ void liveSignalThread(){
 
 			electionTime = false;
 		} else {
-			printf("B: And primary is alive!\n");
-			// TODO: checa pra ver se tem algum novo backup server pra adicionar na lista
+			// printf("B: And primary is alive!\n");
+			std::string datagramData = std::string(datagram.data);
+			int numberOfServers = std::count(datagramData.begin(), datagramData.end(), '#');
+			serversAddresses.clear();
+			for (int i = 0; i < numberOfServers; i++) {
+				std::string backupAdd = getByHashString(datagramData, i, "#");
+				std::string backupServerHost = getByHashString(backupAdd, 0, "*");
+				int backupServerPort = atoi(getByHashString(backupAdd, 1, "*").c_str());
+				if (backupServerPort != commPort)
+					serversAddresses.push_back(std::make_pair(backupServerHost, backupServerPort));
+			}
 		}
 	}
 
 	while (primary == 1) {
-		printf("P: Waiting for new backup address\n");
+		// printf("P: Waiting for new backup address\n");
 		// Wait for new backup address
 		tDatagram datagram;
 		datagram = serversComm->frontEnd->receiveDatagramWithTimeout(2);
 		if (datagram.type == BACKUP) {
-			std::string backupHost = getByHashString(std::string(datagram.data), 0);
-			int backupPort = atoi(getByHashString(std::string(datagram.data), 1).c_str());
+			std::string backupHost = getByHashString(std::string(datagram.data), 0, "#");
+			int backupPort = atoi(getByHashString(std::string(datagram.data), 1, "#").c_str());
 			std::cout << "Backup Address: " << backupHost << ", " << backupPort << std::endl;
 			bool found = false;
 			for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it) {
+				// std::cout << it->second << std::endl;
 				if (it->first == backupHost && it->second == backupPort)
 					found = true;
 			}
@@ -212,12 +222,16 @@ void liveSignalThread(){
 				serversAddresses.push_back(std::make_pair(backupHost, backupPort));
 		}
 
-		printf("P: Sending live signal to all backup servers\n");
+		// printf("P: Sending live signal to all backup servers\n");
 		// Send live signal to all backup servers
 		for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it) {
 			tDatagram datagram;
 			datagram.type = LIVE_SIGNAL;
-			// TODO: Aqui podemos enviar no datagrama uma lista com todos os servidores backups
+			std::string addresses;
+			for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it) {
+				addresses = addresses + it->first + "*" + std::to_string(it->second) + "#";
+			}
+			strcpy(datagram.data, addresses.c_str());
 			serversComm->frontEnd->sendDatagramToAddress(datagram, it->first, it->second);
 		}
 	}
@@ -294,12 +308,12 @@ int main(int argc, char* argv[])
 		if (datagram.type == LOGIN)
 		{
 			std::string loginInfo = std::string(datagram.data);
-			user = searchUser(getByHashString(loginInfo, 0));
+			user = searchUser(getByHashString(loginInfo, 0, "#"));
 			say("Login: " + user->userid);
 
 			saveUsersServer(users);
 
-			Device* newDevice = new Device(user, getByHashString(loginInfo, 1), atoi(getByHashString(loginInfo, 2).c_str()));
+			Device* newDevice = new Device(user, getByHashString(loginInfo, 1, "#"), atoi(getByHashString(loginInfo, 2, "#").c_str()));
 
 			if (newDevice->connect()) {
 				addresses.push_back(std::make_pair(newDevice->address, newDevice->port));

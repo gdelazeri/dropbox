@@ -70,7 +70,7 @@ void printUsersServer(std::list<UserServer*> users);
 int createNewPort(std::list<int> portsInUse);
 std::pair<int, int> getPorts(char* data);
 std::string getCurrentTime();
-std::string getByHashString(std::string hashString, int elementIndex);
+std::string getByHashString(std::string hashString, int elementIndex, std::string separator);
 std::string getIP();
 
 #endif

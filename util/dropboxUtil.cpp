@@ -131,23 +131,23 @@ void printUsersServer(std::list<UserServer*> users)
 	}
 }
 
-std::string getByHashString(std::string hashString, int elementIndex)
+std::string getByHashString(std::string hashString, int elementIndex, std::string separator)
 {
     std::size_t posInit = 0, posEnd;
     int hashes = 1;
 
     if (elementIndex == 0){
-        posEnd = hashString.find("#");
+        posEnd = hashString.find(separator);
         if (posEnd != std::string::npos)
             return hashString.substr(posInit, posEnd);
     }
 
     while (posInit != std::string::npos)
     {
-        posInit = hashString.find("#", posInit + 1);
+        posInit = hashString.find(separator, posInit + 1);
         if (posInit != std::string::npos && hashes == elementIndex)
         {
-            posEnd = hashString.find("#", posInit + 1);
+            posEnd = hashString.find(separator, posInit + 1);
             if (posEnd != std::string::npos)
                 return hashString.substr(posInit+1, posEnd - posInit - 1);
             else
