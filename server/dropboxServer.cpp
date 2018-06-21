@@ -119,6 +119,8 @@ void receiveThread(Socket* socket, Device* device)
 }
 
 void liveSignalThread(){
+	bool inElection = false;
+	
 	printf("LiveSignalThread, press any button to continue...\n");
 	getchar();
 	// Create socket for communication between servers
@@ -127,7 +129,6 @@ void liveSignalThread(){
 
 	// Send backup IP and PORT to primary server
 	if (primary == 0) {
-		//printf("B: Sending my IP and PORT to primary\n");
 		tDatagram datagram;
 		datagram.type = BACKUP;
 		strcpy(datagram.data, (getIP() + "#" + std::to_string(commPort)).c_str());
@@ -136,7 +137,6 @@ void liveSignalThread(){
 
 	// Wait for live signal from primay server
 	while (primary == 0) {	
-		// printf("B: Waiting for primary live signal\n");
 		tDatagram datagram;
 		datagram = serversComm->frontEnd->receiveDatagramWithTimeout(3);
 		
@@ -144,6 +144,7 @@ void liveSignalThread(){
 			// Check if the election is occuring
 			if (!electionTime) {
 				electionTime = true;
+				inElection = true;
 				std::cout << "Whoops! Primary server is down! Starting election..\n";
 
 				datagram.type = ELECTION_TIME;
@@ -152,7 +153,7 @@ void liveSignalThread(){
 				
 				for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it)
 					serversComm->frontEnd->sendDatagramToAddress(datagram, it->first, it->second);
-			} else {
+			} else if (inElection) {
 				primary = 1;
 				std::cout << "I'm the new primary server!\n";
 				
@@ -166,8 +167,8 @@ void liveSignalThread(){
 			}	
 		} else if (datagram.type == ELECTION_TIME) {	
 			electionTime = true;
+			inElection = true;
 			int	serverPort = atoi(datagram.data);
-			//std::cout << "Server port: " << serverPort << " minha porta: " << commPort << "\n";
 			if (serverPort < commPort) {
 				datagram.type = ELECTION_TIME;
 				std::string commPortTemp = std::to_string(commPort);
@@ -175,6 +176,8 @@ void liveSignalThread(){
 
 				for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it)
 					serversComm->frontEnd->sendDatagramToAddress(datagram, it->first, it->second);
+			} else {
+				inElection = false;
 			}
 		} else if (datagram.type == NEW_PRIMARY) {
 			// Change primary server IP and Port for the new primary server data
@@ -190,8 +193,6 @@ void liveSignalThread(){
 
 			electionTime = false;
 		} else {
-			//std::cout << "DATAGRAM: " << datagram.type << "\n";
-			//printf("B: And primary is alive!\n");
 			std::string datagramData = std::string(datagram.data);
 			int numberOfServers = std::count(datagramData.begin(), datagramData.end(), '#');
 			serversAddresses.clear();
@@ -206,7 +207,6 @@ void liveSignalThread(){
 	}
 
 	while (primary == 1) {
-		// printf("P: Waiting for new backup address\n");
 		// Wait for new backup address
 		tDatagram datagram;
 		datagram = serversComm->frontEnd->receiveDatagramWithTimeout(2);
@@ -216,7 +216,6 @@ void liveSignalThread(){
 			std::cout << "Backup Address: " << backupHost << ", " << backupPort << std::endl;
 			bool found = false;
 			for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it) {
-				// std::cout << it->second << std::endl;
 				if (it->first == backupHost && it->second == backupPort)
 					found = true;
 			}
@@ -224,7 +223,6 @@ void liveSignalThread(){
 				serversAddresses.push_back(std::make_pair(backupHost, backupPort));
 		}
 
-		// printf("P: Sending live signal to all backup servers\n");
 		// Send live signal to all backup servers
 		for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it) {
 			tDatagram datagram;
