@@ -21,6 +21,7 @@ std::list<std::pair<std::string, int>> serversAddresses;
 
 int primary = 0;
 int commPort = 0;
+bool electionTime = false;
 
 std::string primaryIP;
 int primaryPort = 0;
@@ -134,17 +135,62 @@ void liveSignalThread(){
 	}
 
 	// Wait for live signal from primay server
-	while (primary == 0) {
+	while (primary == 0) {	
 		printf("B: Waiting for primary live signal\n");
 		tDatagram datagram;
 		datagram = serversComm->frontEnd->receiveDatagramWithTimeout(3);
+		
 		if (datagram.type == ERROR) {
-			// TODO: election!!!!!!!!!!!!!!!!!
-			printf("TODO: election!!!!!!!!!!!!!!!!!\n");
-			getchar();
-			// primary = 1;
+			// Check if the election is occuring
+			if (!electionTime) {
+				electionTime = true;
+				std::cout << "Whoops! Primary server is down! Starting election..\n";
+
+				datagram.type = ELECTION_TIME;
+				std::string commPortTemp = std::to_string(commPort);
+				strcpy(datagram.data, (char *) commPortTemp.c_str());
+				
+				for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it)
+					serversComm->frontEnd->sendDatagramToAddress(datagram, it->first, it->second);
+			} else {
+				primary = 1;
+				std::cout << "I'm the new primary server!\n";
+				
+				// Send the server data (new primary) to all other backup servers
+				datagram.type = NEW_PRIMARY;
+				strcpy(datagram.data, (getIP() + "#" + std::to_string(commPort)).c_str());
+
+				for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it)
+					serversComm->frontEnd->sendDatagramToAddress(datagram, it->first, it->second);
+				electionTime = false;
+			}	
+		} else if (datagram.type == ELECTION_TIME) {	
+			int	serverPort = atoi(datagram.data);
+			
+			if (serverPort < commPort) {
+				datagram.type = ELECTION_TIME;
+				std::string commPortTemp = std::to_string(commPort);
+				strcpy(datagram.data, (char *) commPortTemp.c_str());
+
+				for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it)
+					serversComm->frontEnd->sendDatagramToAddress(datagram, it->first, it->second);
+			}
+		} else if (datagram.type == NEW_PRIMARY) {
+			// Change primary server IP and Port for the new primary server data
+			primaryIP = getByHashString(std::string(datagram.data), 0);
+			primaryPort = atoi(getByHashString(std::string(datagram.data), 1).c_str());
+
+			std::cout << "We have a new primary server, opperating in address " << primaryIP << " and port " << primaryPort << ".\n";
+
+			for (std::list<std::pair<std::string, int>>::iterator it = serversAddresses.begin(); it != serversAddresses.end(); ++it) {
+				if (it->first == primaryIP && it->second == primaryPort)
+					serversAddresses.erase(it++);
+			}				
+
+			electionTime = false;
 		} else {
 			printf("B: And primary is alive!\n");
+			// TODO: checa pra ver se tem algum novo backup server pra adicionar na lista
 		}
 	}
 
